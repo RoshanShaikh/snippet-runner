@@ -111,16 +111,28 @@ function openRunModal(snippet) {
   if (vars.length === 0) {
     modalVars.innerHTML = `<p class="modal-no-vars">No variables — snippet runs as-is.</p>`;
   } else {
-    vars.forEach(v => {
-      const row = document.createElement('div');
-      row.className = 'modal-var-row';
-      row.innerHTML = `
-        <div class="modal-var-label">{{${escapeHtml(v.name)}}}</div>
-        <input class="run-var-input" data-var="${escapeHtml(v.name)}" type="text"
-          placeholder="${escapeHtml(v.default || '')}" value="${escapeHtml(v.default || '')}" />
-      `;
-      modalVars.appendChild(row);
-    });
+    modalVars.innerHTML = `
+      <p class="modal-vars-desc">Each value replaces its <code>{{placeholder}}</code> as a raw JavaScript value in the script.</p>
+      <table class="modal-vars-table">
+        <thead>
+          <tr>
+            <th>Placeholder</th>
+            <th>JS value</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${vars.map(v => `
+            <tr>
+              <td class="modal-var-name"><code>{{${escapeHtml(v.name)}}}</code></td>
+              <td><input class="run-var-input" data-var="${escapeHtml(v.name)}" type="text"
+                placeholder="${escapeHtml(v.default || '(empty)')}"
+                value="${escapeHtml(v.default || '')}"
+                autocomplete="off" spellcheck="false"/></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
   }
 
   document.getElementById('run-modal').classList.remove('hidden');

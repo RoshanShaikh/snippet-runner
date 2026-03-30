@@ -357,7 +357,7 @@ label textarea::placeholder { color: var(--muted); opacity: 0.7; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  width: 330px;
+  width: 360px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -381,26 +381,71 @@ label textarea::placeholder { color: var(--muted); opacity: 0.7; }
 
 #modal-vars { display: flex; flex-direction: column; gap: 8px; }
 
-.modal-var-row { display: flex; flex-direction: column; gap: 4px; }
-.modal-var-label {
+.modal-vars-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.55;
+  padding: 7px 10px;
+  background: rgba(79,201,245,0.06);
+  border-left: 2px solid var(--accent2);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin-bottom: 2px;
+}
+.modal-vars-desc code {
+  color: var(--accent2);
+  font-size: 10px;
+  background: rgba(79,201,245,0.1);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.modal-vars-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: 12px;
+}
+.modal-vars-table thead tr { background: var(--surface2); border-bottom: 1px solid var(--border); }
+.modal-vars-table th {
+  padding: 6px 10px;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.7px;
   color: var(--muted);
+  text-align: left;
 }
-.modal-var-row input {
-  background: var(--bg);
-  border: 1px solid var(--border);
+.modal-vars-table th:first-child { width: 40%; }
+.modal-vars-table tbody tr { border-bottom: 1px solid var(--border); }
+.modal-vars-table tbody tr:last-child { border-bottom: none; }
+.modal-var-name { padding: 6px 10px; }
+.modal-var-name code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent2);
+  background: rgba(79,201,245,0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.modal-vars-table td:last-child { padding: 4px 6px; }
+.modal-vars-table input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: var(--radius);
   color: var(--text);
   font-family: var(--mono);
   font-size: 12px;
-  padding: 7px 10px;
+  padding: 4px 7px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
-.modal-var-row input:focus { border-color: var(--accent); }
+.modal-vars-table input:hover { border-color: var(--border); background: var(--bg); }
+.modal-vars-table input:focus { border-color: var(--accent); background: var(--bg); }
+.modal-vars-table input::placeholder { color: var(--muted); opacity: 0.45; }
 
 .modal-no-vars {
   font-size: 12px;

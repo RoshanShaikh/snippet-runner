@@ -16,64 +16,93 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (snippet) populateForm(snippet);
   }
 
+  // Detect variables live as user types code
+  document.getElementById('field-code').addEventListener('input', () => syncVarsFromCode());
+
   document.getElementById('btn-save').addEventListener('click', saveEditor);
   document.getElementById('btn-cancel').addEventListener('click', () => window.close());
-  document.getElementById('btn-add-var').addEventListener('click', () => addVarRow());
-
-  // Sync variable name hints into code textarea as user types
-  document.getElementById('variables-list').addEventListener('input', updateVarHints);
 });
 
 // ─── Populate form when editing ────────────────────────────────────────────────
 
 function populateForm(snippet) {
-  document.getElementById('field-name').value = snippet.name  || '';
-  document.getElementById('field-desc').value = snippet.desc  || '';
-  document.getElementById('field-code').value = snippet.code  || '';
-  (snippet.variables || []).forEach(v => addVarRow(v.name, v.default));
+  document.getElementById('field-name').value = snippet.name || '';
+  document.getElementById('field-desc').value = snippet.desc || '';
+  document.getElementById('field-code').value = snippet.code || '';
+  // Sync from code first, then restore saved default values
+  syncVarsFromCode(snippet.variables || []);
 }
 
-// ─── Variable rows ─────────────────────────────────────────────────────────────
+// ─── Auto-detect variables from {{placeholders}} in code ──────────────────────
 
-function addVarRow(name = '', defaultVal = '') {
-  const hint = document.querySelector('.vars-empty-hint');
-  if (hint) hint.remove();
+function extractVarNames(code) {
+  const matches = [...code.matchAll(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g)];
+  // Deduplicate while preserving order of first appearance
+  const seen = new Set();
+  return matches.map(m => m[1]).filter(name => seen.has(name) ? false : seen.add(name));
+}
 
-  const row = document.createElement('div');
-  row.className = 'var-row';
-  row.innerHTML = `
-    <div class="var-row-inner">
-      <div class="var-field">
-        <span class="var-field-label">Name</span>
-        <input class="var-name" type="text" placeholder="tokenName" value="${escapeHtml(name)}" autocomplete="off"/>
-      </div>
-      <span class="var-eq">=</span>
-      <div class="var-field">
-        <span class="var-field-label">Default value</span>
-        <input class="var-default" type="text" placeholder="(empty)" value="${escapeHtml(defaultVal)}" autocomplete="off"/>
-      </div>
-      <button class="btn-remove-var" title="Remove variable">✕</button>
-    </div>
-    <div class="var-usage-hint"></div>
+function syncVarsFromCode(existingVars = []) {
+  const code     = document.getElementById('field-code').value;
+  const names    = extractVarNames(code);
+  const list     = document.getElementById('variables-list');
+
+  // Collect current default values keyed by name so we don't lose them on re-sync
+  const currentDefaults = {};
+  list.querySelectorAll('[data-var-name]').forEach(row => {
+    const n = row.dataset.varName;
+    const d = row.querySelector('.var-default')?.value;
+    if (n && d !== undefined) currentDefaults[n] = d;
+  });
+
+  // Also pull in defaults passed from saved snippet (for initial load)
+  existingVars.forEach(v => {
+    if (!(v.name in currentDefaults)) currentDefaults[v.name] = v.default || '';
+  });
+
+  list.innerHTML = '';
+
+  if (names.length === 0) {
+    list.innerHTML = `<p class="vars-empty-hint">
+      Use <code>{{variableName}}</code> placeholders in your code — variables appear here automatically.
+    </p>`;
+    return;
+  }
+
+  // Description banner
+  const desc = document.createElement('p');
+  desc.className = 'vars-description';
+  desc.innerHTML = `Each <code>{{placeholder}}</code> is replaced with its JavaScript value at run time. You can set a default here — it will be pre-filled when you run the snippet and can be overridden then.`;
+  list.appendChild(desc);
+
+  // Table
+  const table = document.createElement('table');
+  table.className = 'vars-table';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Placeholder</th>
+        <th>Default JS value</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
   `;
-  row.querySelector('.btn-remove-var').addEventListener('click', () => {
-    row.remove();
-    if (!document.querySelector('.var-row')) {
-      const list = document.getElementById('variables-list');
-      list.innerHTML = '<p class="vars-empty-hint">No variables yet. Add one to use <code>{{placeholders}}</code> in your code.</p>';
-    }
-  });
-  row.querySelector('.var-name').addEventListener('input', updateVarHints);
-  document.getElementById('variables-list').appendChild(row);
-  updateVarHints();
-}
 
-function updateVarHints() {
-  document.querySelectorAll('.var-row').forEach(row => {
-    const name = row.querySelector('.var-name').value.trim();
-    const hint = row.querySelector('.var-usage-hint');
-    hint.textContent = name ? `Use {{${name}}} in your code` : '';
+  const tbody = table.querySelector('tbody');
+  names.forEach(name => {
+    const defaultVal = currentDefaults[name] ?? '';
+    const tr = document.createElement('tr');
+    tr.dataset.varName = name;
+    tr.innerHTML = `
+      <td class="var-name-cell"><code>{{${escapeHtml(name)}}}</code></td>
+      <td><input class="var-default var-default-input" type="text"
+        placeholder="e.g. 'hello', 42, true, null"
+        value="${escapeHtml(defaultVal)}" autocomplete="off" spellcheck="false"/></td>
+    `;
+    tbody.appendChild(tr);
   });
+
+  list.appendChild(table);
 }
 
 // ─── Save ──────────────────────────────────────────────────────────────────────
@@ -85,9 +114,10 @@ async function saveEditor() {
   if (!name) { showToast('Name is required', 'error'); return; }
   if (!code) { showToast('Code is required', 'error'); return; }
 
+  // Build variables from detected table rows
   const variables = [];
-  document.querySelectorAll('.var-row').forEach(row => {
-    const varName = row.querySelector('.var-name').value.trim();
+  document.querySelectorAll('.vars-table tbody tr[data-var-name]').forEach(row => {
+    const varName    = row.dataset.varName;
     const varDefault = row.querySelector('.var-default').value;
     if (varName) variables.push({ name: varName, default: varDefault });
   });
@@ -97,7 +127,13 @@ async function saveEditor() {
   if (editingId) {
     const idx = snippets.findIndex(s => s.id === editingId);
     if (idx > -1) {
-      snippets[idx] = { ...snippets[idx], name, desc: document.getElementById('field-desc').value.trim(), code, variables };
+      snippets[idx] = {
+        ...snippets[idx],
+        name,
+        desc: document.getElementById('field-desc').value.trim(),
+        code,
+        variables
+      };
     }
   } else {
     snippets.push({

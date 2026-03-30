@@ -38,20 +38,19 @@
         </div>
 
         <div class="form-section full-width">
-          <div class="label-row">
-            <label>Variables</label>
-            <button id="btn-add-var" class="btn-ghost btn-sm">＋ Add Variable</button>
-          </div>
-          <div id="variables-list" class="variables-list">
-            <p class="vars-empty-hint">No variables yet. Add one to use <code>{{placeholders}}</code> in your code.</p>
-          </div>
-        </div>
-
-        <div class="form-section full-width">
           <label for="field-code">Code <span class="required">*</span></label>
           <div class="code-wrap">
             <textarea id="field-code" spellcheck="false"
               placeholder="// Use {{variableName}} placeholders&#10;// e.g. localStorage.setItem('token', '{{token}}');"></textarea>
+          </div>
+        </div>
+
+        <div class="form-section full-width">
+          <label>Detected Variables</label>
+          <div id="variables-list" class="variables-list">
+            <p class="vars-empty-hint">
+              Use <code>{{variableName}}</code> placeholders in your code — variables appear here automatically.
+            </p>
           </div>
         </div>
 

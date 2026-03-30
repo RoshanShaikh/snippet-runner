@@ -166,102 +166,109 @@ html, body {
 }
 #field-code::placeholder { color: var(--muted); opacity: 0.6; }
 
-/* ── VARIABLES ── */
-.variables-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 36px;
-}
-
+/* ── VARIABLES TABLE ── */
 .vars-empty-hint {
   font-size: 12px;
   color: var(--muted);
-  padding: 10px 0 2px;
+  padding: 12px 0 4px;
   font-style: italic;
 }
 .vars-empty-hint code {
   background: var(--surface2);
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 3px;
   font-style: normal;
   color: var(--accent2);
   font-size: 11px;
 }
 
-.var-row {
-  background: var(--surface);
+.vars-description {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.6;
+  padding: 8px 12px;
+  background: rgba(79,201,245,0.06);
+  border-left: 2px solid var(--accent2);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.vars-description code {
+  color: var(--accent2);
+  font-size: 11px;
+  background: rgba(79,201,245,0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.vars-table {
+  width: 100%;
+  border-collapse: collapse;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px 12px;
+  overflow: hidden;
+  font-size: 13px;
 }
 
-.var-row-inner {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
+.vars-table thead tr {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
 }
 
-.var-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-.var-field-label {
+.vars-table th {
+  padding: 8px 12px;
   font-size: 10px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   color: var(--muted);
-  font-weight: 600;
+  text-align: left;
+}
+.vars-table th:first-child { width: 38%; }
+.vars-table th:last-child  { width: 62%; }
+
+.vars-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+.vars-table tbody tr:last-child { border-bottom: none; }
+.vars-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+.vars-table td {
+  padding: 7px 12px;
+  vertical-align: middle;
 }
 
-.var-row-inner input {
-  background: var(--bg);
-  border: 1px solid var(--border);
+.var-name-cell code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent2);
+  background: rgba(79,201,245,0.08);
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.var-default-input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: var(--radius);
   color: var(--text);
   font-family: var(--mono);
   font-size: 12px;
-  padding: 7px 10px;
+  padding: 5px 8px;
   outline: none;
-  transition: border-color 0.15s;
-  width: 100%;
+  transition: border-color 0.15s, background 0.15s;
 }
-.var-row-inner input:focus { border-color: var(--accent2); }
-.var-row-inner input::placeholder { color: var(--muted); opacity: 0.5; }
-
-.var-eq {
-  color: var(--muted);
-  font-size: 16px;
-  padding-bottom: 6px;
-  flex-shrink: 0;
+.var-default-input:hover {
+  border-color: var(--border);
+  background: var(--bg);
 }
-
-.btn-remove-var {
-  background: none;
-  border: none;
-  color: var(--danger);
-  cursor: pointer;
-  font-size: 13px;
-  opacity: 0.45;
-  padding: 6px 4px;
-  border-radius: 4px;
-  transition: opacity 0.15s;
-  flex-shrink: 0;
-  padding-bottom: 8px;
+.var-default-input:focus {
+  border-color: var(--accent2);
+  background: var(--bg);
 }
-.btn-remove-var:hover { opacity: 1; }
-
-.var-usage-hint {
-  font-size: 11px;
-  color: var(--accent2);
-  margin-top: 6px;
-  font-style: italic;
-  opacity: 0.8;
-  min-height: 14px;
-}
+.var-default-input::placeholder { color: var(--muted); opacity: 0.45; }
 
 /* ── TOAST ── */
 .toast {
@@ -579,4 +586,20 @@ html, body {
 .section-body-inner .code-block,
 .section-body-inner .logs-block {
   margin: 14px;
+}
+
+/* ── AUTO-DETECTED VARIABLE ROWS ── */
+.var-field--name { flex: 0 0 auto; min-width: 160px; }
+
+.var-name-display {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.var-name-display code {
+  font-family: var(--mono);
+  color: var(--accent2);
+  font-size: 12px;
 }
