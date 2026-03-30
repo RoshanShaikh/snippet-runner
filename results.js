@@ -4,8 +4,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const main = document.getElementById('results-main');
   main.innerHTML = `<div class="loading-results">Loading results<span class="loading-dots"></span></div>`;
 
-  // Poll up to 3s — popup writes storage then delays close by 300ms,
-  // so results should appear within the first few polls.
   const result = await waitForResult(3000);
 
   if (!result) {
@@ -33,15 +31,11 @@ async function waitForResult(timeoutMs) {
 }
 
 function render(main, result) {
-  const hasError = result.logs.some(l => l.level === 'error');
+  const hasError    = result.logs.some(l => l.level === 'error');
   const statusClass = hasError ? 'error' : 'success';
   const statusIcon  = hasError ? '✕' : '✓';
+  const ranAt       = new Date(result.ranAt);
 
-  document.title = `SnippetRunner — ${result.snippetName}`;
-
-  const ranAt = new Date(result.ranAt);
-
-  // Build log rows HTML
   let logsHtml;
   if (!result.logs || result.logs.length === 0) {
     logsHtml = `<div class="log-empty">No console output — snippet ran silently.</div>`;
@@ -59,6 +53,8 @@ function render(main, result) {
     ? `<span class="log-count">${result.logs.length} line${result.logs.length > 1 ? 's' : ''}</span>`
     : '';
 
+  document.title = `SnippetRunner — ${result.snippetName}`;
+
   main.innerHTML = `
     <div class="result-hero">
       <div class="result-status-icon ${statusClass}">${statusIcon}</div>
@@ -73,22 +69,50 @@ function render(main, result) {
       </div>
     </div>
 
-    <section class="result-section">
-      <div class="section-label">
-        <span>Code</span>
-        <button id="btn-copy-code" class="btn-ghost btn-xs">Copy</button>
+    <section class="result-section collapsible collapsed">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="chevron"></span>
+          <span>Code</span>
+          <span class="collapse-hint">click to expand</span>
+        </div>
+        <div class="section-header-right">
+          <button id="btn-copy-code" class="btn-ghost btn-xs">Copy</button>
+        </div>
       </div>
-      <pre class="code-block">${escapeHtml(result.code)}</pre>
+      <div class="section-body"><div class="section-body-inner">
+        <pre class="code-block">${escapeHtml(result.code)}</pre>
+      </div></div>
     </section>
 
-    <section class="result-section">
-      <div class="section-label">
-        <span>Output</span>
-        ${logCountHtml}
+    <section class="result-section collapsible">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="chevron"></span>
+          <span>Output</span>
+          <span class="collapse-hint">click to collapse</span>
+        </div>
+        <div class="section-header-right">
+          ${logCountHtml}
+        </div>
       </div>
-      <div class="logs-block">${logsHtml}</div>
+      <div class="section-body"><div class="section-body-inner">
+        <div class="logs-block">${logsHtml}</div>
+      </div></div>
     </section>
   `;
+
+  // Toggle collapse on header click
+  main.querySelectorAll('.section-header').forEach(header => {
+    header.addEventListener('click', e => {
+      // Don't collapse when clicking the Copy button
+      if (e.target.closest('button')) return;
+      const section = header.closest('.collapsible');
+      section.classList.toggle('collapsed');
+      const hint = header.querySelector('.collapse-hint');
+      if (hint) hint.textContent = section.classList.contains('collapsed') ? 'click to expand' : 'click to collapse';
+    });
+  });
 
   document.getElementById('btn-copy-code').addEventListener('click', () => {
     navigator.clipboard.writeText(result.code).then(() => {

@@ -356,10 +356,8 @@ html, body {
 }
 
 .code-block {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px;
+  background: transparent;
+  padding: 0;
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1.7;
@@ -371,9 +369,8 @@ html, body {
 
 /* ── LOGS ── */
 .logs-block {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   overflow: hidden;
+  border-radius: calc(var(--radius) - 2px);
 }
 
 .log-empty {
@@ -478,4 +475,108 @@ html, body {
   font-weight: 800;
   letter-spacing: -0.4px;
   color: var(--text);
-} 
+}
+
+/* ── COLLAPSIBLE SECTIONS ── */
+.result-section.collapsible { gap: 0; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: background 0.15s, border-color 0.15s;
+  margin-bottom: 0;
+}
+.section-header:hover {
+  background: #1c1f26;
+  border-color: #3a3d46;
+}
+.collapsible:not(.collapsed) .section-header {
+  border-bottom-color: transparent;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.section-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.collapse-hint {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.section-header:hover .collapse-hint { opacity: 1; }
+
+.chevron {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.2s ease;
+}
+.chevron::after {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg) translate(-1px, -1px); /* pointing down = expanded */
+  transition: transform 0.2s ease;
+}
+.collapsed .chevron::after {
+  transform: rotate(-45deg) translate(-1px, 1px); /* pointing right = collapsed */
+}
+.section-header:hover .chevron { background: var(--border); }
+
+/* grid-template-rows trick: animates the actual content height, not a
+   fixed ceiling, so collapse and expand are equally fast. Requires a
+   single wrapper child inside .section-body with min-height: 0. */
+.section-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.25s ease;
+  overflow: hidden;
+}
+.collapsed .section-body {
+  grid-template-rows: 0fr;
+}
+.section-body-inner {
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* Padding lives on the content, not the collapsible wrapper,
+   so it doesn't bleed out when grid-template-rows is 0fr */
+.section-body-inner .code-block,
+.section-body-inner .logs-block {
+  margin: 14px;
+}
