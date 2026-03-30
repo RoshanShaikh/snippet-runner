@@ -89,32 +89,50 @@ header {
 .import-options {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
+  gap: 10px;
 }
 .import-options.hidden { display: none; }
 
 .import-radio {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
   cursor: pointer;
-  padding: 7px 8px;
-  border-radius: var(--radius);
-  border: 1px solid transparent;
-  transition: border-color 0.15s, background 0.15s;
+  padding: 4px 0;
+  border: none;
+  background: none;
 }
-.import-radio:has(input:checked) {
-  border-color: var(--accent);
-  background: rgba(127,255,111,0.05);
+.import-radio input[type="radio"] {
+  grid-column: 1;
+  grid-row: 1;
+  accent-color: var(--accent);
+  margin: 0;
+  margin-top: 2px;
+  cursor: pointer;
+  justify-self: center;
 }
-.import-radio input[type="radio"] { accent-color: var(--accent); flex-shrink: 0; margin-top: 2px; }
-.import-radio-body { display: flex; flex-direction: column; gap: 2px; }
-.import-radio-body strong { font-size: 12px; color: var(--text); font-family: var(--mono); }
-.import-radio-body span { font-size: 11px; color: var(--muted); line-height: 1.4; padding-left: 0; }
+.import-radio-body strong {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.import-radio-body span {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+  font-weight: 400;
+}
+/* put strong and span directly under label, not wrapped in a div */
+.import-radio-body { display: contents; }
 
 .btn-primary {
   background: var(--accent);
