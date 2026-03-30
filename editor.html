@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SnippetRunner — Editor</title>
+  <link rel="stylesheet" href="page.css" />
+</head>
+<body>
+
+  <div class="page-wrap">
+    <header class="page-header">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">SnippetRunner</span>
+      </div>
+      <div class="header-actions">
+        <button id="btn-cancel" class="btn-ghost">Cancel</button>
+        <button id="btn-save" class="btn-primary">Save Snippet</button>
+      </div>
+    </header>
+
+    <main class="editor-main">
+      <div class="editor-title-row">
+        <h1 id="page-title">New Snippet</h1>
+      </div>
+
+      <div class="form-grid">
+
+        <div class="form-section">
+          <label for="field-name">Name <span class="required">*</span></label>
+          <input id="field-name" type="text" placeholder="e.g. Set Auth Token" maxlength="60" autocomplete="off"/>
+        </div>
+
+        <div class="form-section">
+          <label for="field-desc">Description <span class="optional">(optional)</span></label>
+          <input id="field-desc" type="text" placeholder="What does this snippet do?" maxlength="120" autocomplete="off"/>
+        </div>
+
+        <div class="form-section full-width">
+          <div class="label-row">
+            <label>Variables</label>
+            <button id="btn-add-var" class="btn-ghost btn-sm">＋ Add Variable</button>
+          </div>
+          <div id="variables-list" class="variables-list">
+            <p class="vars-empty-hint">No variables yet. Add one to use <code>{{placeholders}}</code> in your code.</p>
+          </div>
+        </div>
+
+        <div class="form-section full-width">
+          <label for="field-code">Code <span class="required">*</span></label>
+          <div class="code-wrap">
+            <textarea id="field-code" spellcheck="false"
+              placeholder="// Use {{variableName}} placeholders&#10;// e.g. localStorage.setItem('token', '{{token}}');"></textarea>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script src="editor.js"></script>
+</body>
+</html>

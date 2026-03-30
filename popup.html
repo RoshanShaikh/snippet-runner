@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SnippetRunner</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <!-- MAIN LIST VIEW -->
+  <div id="view-list" class="view active">
+    <header>
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">SnippetRunner</span>
+      </div>
+      <button id="btn-new" class="btn-icon" title="New Snippet">＋</button>
+    </header>
+
+    <div id="snippet-list-empty" class="empty-state hidden">
+      <div class="empty-icon">📭</div>
+      <p>No snippets yet.<br/>Hit <strong>＋</strong> to create one.</p>
+    </div>
+
+    <ul id="snippet-list"></ul>
+  </div>
+
+  <!-- RUN MODAL -->
+  <div id="run-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-icon">▶</span>
+        <h3 id="modal-snippet-name"></h3>
+      </div>
+      <p class="modal-subtitle">Fill in variables before running</p>
+      <div id="modal-vars"></div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn-ghost">Cancel</button>
+        <button id="modal-run" class="btn-run">Run</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING OVERLAY -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-box">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Running<span class="loading-dots"></span></div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
