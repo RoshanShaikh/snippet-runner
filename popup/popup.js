@@ -91,7 +91,7 @@ function confirmDelete(li, snippet) {
 // ─── OPEN EDITOR PAGE ──────────────────────────────────────────────────────────
 
 function openEditorPage(snippetId = null) {
-  const url = chrome.runtime.getURL('editor.html') + (snippetId ? `?id=${snippetId}` : '');
+  const url = chrome.runtime.getURL('editor/editor.html') + (snippetId ? `?id=${snippetId}` : '');
   chrome.tabs.create({ url });
   window.close();
 }
@@ -242,7 +242,7 @@ async function executeSnippet() {
     overlay.classList.add('hidden');
 
     // Open results tab — storage is guaranteed written before this line
-    chrome.tabs.create({ url: chrome.runtime.getURL('results.html') });
+    chrome.tabs.create({ url: chrome.runtime.getURL('results/results.html') });
 
     // Delay close so the popup's JS context isn't torn down before
     // the storage write propagates to the new tab's read

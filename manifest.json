@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SnippetRunner",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Store JS snippets with configurable variables and run them in any page's console.",
   "permissions": [
     "activeTab",
@@ -9,22 +9,22 @@
     "storage"
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "popup/popup.html",
     "default_title": "SnippetRunner"
   },
   "web_accessible_resources": [
     {
       "resources": [
-        "editor.html",
-        "results.html",
-        "page.css",
-        "shared.js",
-        "editor.js",
-        "results.js"
+        "editor/editor.html",
+        "editor/editor.css",
+        "editor/editor.js",
+        "results/results.html",
+        "results/results.css",
+        "results/results.js",
+        "common.css",
+        "shared.js"
       ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "matches": ["<all_urls>"]
     }
   ],
   "icons": {
