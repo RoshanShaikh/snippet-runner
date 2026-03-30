@@ -14,8 +14,17 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["editor.html", "results.html"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "editor.html",
+        "results.html",
+        "page.css",
+        "shared.js",
+        "editor.js",
+        "results.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "icons": {

@@ -10,14 +10,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     editingId = id;
     document.getElementById('page-title').textContent = 'Edit Snippet';
     document.title = 'SnippetRunner — Edit Snippet';
-
     const snippets = await loadSnippets();
     const snippet  = snippets.find(s => s.id === id);
     if (snippet) populateForm(snippet);
   }
 
-  // Detect variables live as user types code
-  document.getElementById('field-code').addEventListener('input', () => syncVarsFromCode());
+  const ta = document.getElementById('field-code');
+
+  // Auto-detect variables as user types
+  ta.addEventListener('input', () => syncVarsFromCode());
 
   document.getElementById('btn-save').addEventListener('click', saveEditor);
   document.getElementById('btn-cancel').addEventListener('click', () => window.close());
@@ -29,7 +30,6 @@ function populateForm(snippet) {
   document.getElementById('field-name').value = snippet.name || '';
   document.getElementById('field-desc').value = snippet.desc || '';
   document.getElementById('field-code').value = snippet.code || '';
-  // Sync from code first, then restore saved default values
   syncVarsFromCode(snippet.variables || []);
 }
 
@@ -37,25 +37,22 @@ function populateForm(snippet) {
 
 function extractVarNames(code) {
   const matches = [...code.matchAll(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g)];
-  // Deduplicate while preserving order of first appearance
   const seen = new Set();
-  return matches.map(m => m[1]).filter(name => seen.has(name) ? false : seen.add(name));
+  return matches.map(m => m[1]).filter(n => seen.has(n) ? false : seen.add(n));
 }
 
 function syncVarsFromCode(existingVars = []) {
-  const code     = document.getElementById('field-code').value;
-  const names    = extractVarNames(code);
-  const list     = document.getElementById('variables-list');
+  const code  = document.getElementById('field-code').value;
+  const names = extractVarNames(code);
+  const list  = document.getElementById('variables-list');
 
-  // Collect current default values keyed by name so we don't lose them on re-sync
+  // Preserve existing default values across re-syncs
   const currentDefaults = {};
-  list.querySelectorAll('[data-var-name]').forEach(row => {
+  list.querySelectorAll('tr[data-var-name]').forEach(row => {
     const n = row.dataset.varName;
     const d = row.querySelector('.var-default')?.value;
-    if (n && d !== undefined) currentDefaults[n] = d;
+    if (n !== undefined && d !== undefined) currentDefaults[n] = d;
   });
-
-  // Also pull in defaults passed from saved snippet (for initial load)
   existingVars.forEach(v => {
     if (!(v.name in currentDefaults)) currentDefaults[v.name] = v.default || '';
   });
@@ -69,26 +66,19 @@ function syncVarsFromCode(existingVars = []) {
     return;
   }
 
-  // Description banner
   const desc = document.createElement('p');
   desc.className = 'vars-description';
-  desc.innerHTML = `Each <code>{{placeholder}}</code> is replaced with its JavaScript value at run time. You can set a default here — it will be pre-filled when you run the snippet and can be overridden then.`;
+  desc.innerHTML = `Each <code>{{placeholder}}</code> is replaced with its value at run time. Set a default here — it will be pre-filled when running and can be overridden.`;
   list.appendChild(desc);
 
-  // Table
   const table = document.createElement('table');
   table.className = 'vars-table';
   table.innerHTML = `
-    <thead>
-      <tr>
-        <th>Placeholder</th>
-        <th>Default JS value</th>
-      </tr>
-    </thead>
+    <thead><tr><th>Placeholder</th><th>Default JS value</th></tr></thead>
     <tbody></tbody>
   `;
-
   const tbody = table.querySelector('tbody');
+
   names.forEach(name => {
     const defaultVal = currentDefaults[name] ?? '';
     const tr = document.createElement('tr');
@@ -114,11 +104,10 @@ async function saveEditor() {
   if (!name) { showToast('Name is required', 'error'); return; }
   if (!code) { showToast('Code is required', 'error'); return; }
 
-  // Build variables from detected table rows
   const variables = [];
-  document.querySelectorAll('.vars-table tbody tr[data-var-name]').forEach(row => {
+  document.querySelectorAll('#variables-list tr[data-var-name]').forEach(row => {
     const varName    = row.dataset.varName;
-    const varDefault = row.querySelector('.var-default').value;
+    const varDefault = row.querySelector('.var-default')?.value || '';
     if (varName) variables.push({ name: varName, default: varDefault });
   });
 

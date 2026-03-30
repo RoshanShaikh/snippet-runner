@@ -28,9 +28,9 @@ html, body {
 
 /* ── LAYOUT ── */
 .page-wrap {
-  max-width: 800px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 0 24px 60px;
+  padding: 0 40px 60px;
 }
 
 /* ── HEADER ── */
@@ -141,30 +141,7 @@ html, body {
 .form-section input[type="text"]:focus { border-color: var(--accent); }
 .form-section input[type="text"]::placeholder { color: var(--muted); opacity: 0.6; }
 
-.code-wrap {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  transition: border-color 0.15s;
-}
-.code-wrap:focus-within { border-color: var(--accent); }
 
-#field-code {
-  display: block;
-  width: 100%;
-  min-height: 240px;
-  background: var(--surface);
-  border: none;
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 13px;
-  line-height: 1.7;
-  padding: 14px 16px;
-  outline: none;
-  resize: vertical;
-  tab-size: 2;
-}
-#field-code::placeholder { color: var(--muted); opacity: 0.6; }
 
 /* ── VARIABLES TABLE ── */
 .vars-empty-hint {
@@ -362,9 +339,7 @@ html, body {
   letter-spacing: 0;
 }
 
-.code-block {
-  background: transparent;
-  padding: 0;
+.code-block--old-removed {
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1.7;
@@ -602,4 +577,42 @@ html, body {
   font-family: var(--mono);
   color: var(--accent2);
   font-size: 12px;
+}
+
+/* ── CODE TEXTAREA (editor) ── */
+.code-textarea {
+  display: block;
+  width: 100%;
+  min-height: 260px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  caret-color: var(--accent);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 14px 16px;
+  outline: none;
+  resize: vertical;
+  tab-size: 2;
+  transition: border-color 0.15s;
+}
+.code-textarea:focus { border-color: var(--accent); }
+.code-textarea::placeholder { color: var(--muted); opacity: 0.5; }
+
+/* ── CODE BLOCK (results) ── */
+.code-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0;
+  padding: 16px 18px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
 }

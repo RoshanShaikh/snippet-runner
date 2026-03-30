@@ -255,10 +255,125 @@ async function executeSnippet() {
   }
 }
 
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+
+async function exportSnippets() {
+  const snippets = await loadSnippets();
+  if (snippets.length === 0) { showToast('No snippets to export', 'error'); return; }
+
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    snippets
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `snippetrunner-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`Exported ${snippets.length} snippet${snippets.length > 1 ? 's' : ''}`);
+}
+
+// ─── IMPORT ───────────────────────────────────────────────────────────────────
+
+let pendingImport = null; // holds parsed snippets waiting for user confirmation
+
+function openImportPicker() {
+  document.getElementById('import-file-input').click();
+}
+
+function onImportFileChosen(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  // Reset so same file can be chosen again
+  e.target.value = '';
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const snippets = Array.isArray(data) ? data           // bare array
+                     : Array.isArray(data.snippets) ? data.snippets  // wrapped
+                     : null;
+
+      if (!snippets || snippets.length === 0) {
+        showToast('No valid snippets found in file', 'error');
+        return;
+      }
+
+      // Validate each entry has at least a name and code
+      const valid = snippets.filter(s => s && typeof s.name === 'string' && typeof s.code === 'string');
+      if (valid.length === 0) {
+        showToast('No valid snippets found in file', 'error');
+        return;
+      }
+
+      pendingImport = valid;
+      document.getElementById('import-summary').textContent =
+        `Found ${valid.length} snippet${valid.length > 1 ? 's' : ''} in "${file.name}"`;
+      document.getElementById('import-options').classList.remove('hidden');
+      document.getElementById('import-modal').classList.remove('hidden');
+    } catch {
+      showToast('Invalid JSON file', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function confirmImport() {
+  if (!pendingImport) return;
+
+  const mode = document.querySelector('input[name="import-mode"]:checked').value;
+  const incoming = pendingImport.map(s => ({
+    ...s,
+    id: s.id || uid(),
+    variables: s.variables || [],
+    createdAt: s.createdAt || Date.now()
+  }));
+
+  let final;
+  if (mode === 'overwrite') {
+    final = incoming;
+  } else {
+    // Merge: skip any whose id already exists
+    const existing = await loadSnippets();
+    const existingIds = new Set(existing.map(s => s.id));
+    const newOnes = incoming.filter(s => !existingIds.has(s.id));
+    final = [...existing, ...newOnes];
+    const skipped = incoming.length - newOnes.length;
+    if (skipped > 0) showToast(`Imported ${newOnes.length}, skipped ${skipped} duplicate${skipped > 1 ? 's' : ''}`);
+    else showToast(`Imported ${newOnes.length} snippet${newOnes.length > 1 ? 's' : ''}`);
+  }
+
+  await saveSnippets(final);
+  if (mode === 'overwrite') showToast(`Replaced with ${final.length} snippet${final.length > 1 ? 's' : ''}`);
+
+  closeImportModal();
+  renderList();
+}
+
+function closeImportModal() {
+  document.getElementById('import-modal').classList.add('hidden');
+  document.getElementById('import-options').classList.add('hidden');
+  pendingImport = null;
+}
+
 // ─── Wire-up ───────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-new').addEventListener('click', () => openEditorPage());
+
+  document.getElementById('btn-export').addEventListener('click', exportSnippets);
+  document.getElementById('btn-import').addEventListener('click', openImportPicker);
+  document.getElementById('import-file-input').addEventListener('change', onImportFileChosen);
+  document.getElementById('import-cancel').addEventListener('click', closeImportModal);
+  document.getElementById('import-confirm').addEventListener('click', confirmImport);
+  document.getElementById('import-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeImportModal();
+  });
 
   document.getElementById('modal-cancel').addEventListener('click', closeRunModal);
   document.getElementById('modal-run').addEventListener('click', executeSnippet);
