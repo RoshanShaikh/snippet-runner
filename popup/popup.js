@@ -36,11 +36,13 @@ async function renderList() {
 
     const varCount = (snippet.variables || []).length;
     const metaText = snippet.desc || `${snippet.code.length} chars`;
+    // Only attach data-full (tooltip) when there's a description that might truncate
+    const metaAttr = snippet.desc ? ` data-full="${escapeHtml(snippet.desc)}"` : '';
 
     li.innerHTML = `
       <div class="snippet-info">
         <div class="snippet-name">${escapeHtml(snippet.name)}</div>
-        <div class="snippet-meta">${escapeHtml(metaText)}</div>
+        <div class="snippet-meta"${metaAttr}>${escapeHtml(metaText)}</div>
       </div>
       ${varCount > 0 ? `<span class="snippet-badge">${varCount} var${varCount > 1 ? 's' : ''}</span>` : ''}
       <div class="snippet-actions">
@@ -103,6 +105,11 @@ let activeSnippet = null;
 function openRunModal(snippet) {
   activeSnippet = snippet;
   document.getElementById('modal-snippet-name').textContent = snippet.name;
+  const descEl = document.getElementById('modal-snippet-desc');
+  if (descEl) {
+    descEl.textContent = snippet.desc || '';
+    descEl.style.display = snippet.desc ? 'block' : 'none';
+  }
 
   const modalVars = document.getElementById('modal-vars');
   modalVars.innerHTML = '';
@@ -360,6 +367,17 @@ function closeImportModal() {
   document.getElementById('import-options').classList.add('hidden');
   pendingImport = null;
 }
+
+// ─── TOOLTIP POSITIONING ──────────────────────────────────────────────────────
+// CSS ::after with position:fixed needs coordinates from JS
+document.addEventListener('mousemove', e => {
+  const meta = e.target.closest('.snippet-meta[data-full]');
+  if (meta) {
+    const r = meta.getBoundingClientRect();
+    document.documentElement.style.setProperty('--tt-x', `${r.left}px`);
+    document.documentElement.style.setProperty('--tt-y', `${r.bottom + 6}px`);
+  }
+});
 
 // ─── Wire-up ───────────────────────────────────────────────────────────────────
 
