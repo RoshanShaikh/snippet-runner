@@ -131,10 +131,17 @@ function openRunModal(snippet) {
           ${vars.map(v => `
             <tr class="${v.fieldDesc ? 'has-hint' : ''}">
               <td class="modal-var-name"><code>{{${escapeHtml(v.name)}}}</code></td>
-              <td><input class="run-var-input" data-var="${escapeHtml(v.name)}" type="text"
-                placeholder="${escapeHtml(v.default || '(empty)')}"
-                value="${escapeHtml(v.default || '')}"
-                autocomplete="off" spellcheck="false"/></td>
+              <td class="modal-var-input-cell">
+                ${v.multiline
+                  ? `<textarea class="run-var-input run-var-textarea" data-var="${escapeHtml(v.name)}"
+                      autocomplete="off" spellcheck="false"
+                      placeholder="${escapeHtml(v.default || '(empty)')}">${escapeHtml(v.default || '')}</textarea>`
+                  : `<input class="run-var-input" data-var="${escapeHtml(v.name)}" type="text"
+                      placeholder="${escapeHtml(v.default || '(empty)')}"
+                      value="${escapeHtml(v.default || '')}"
+                      autocomplete="off" spellcheck="false"/>`
+                }
+              </td>
             </tr>
             ${v.fieldDesc ? `
             <tr class="modal-var-hint-row">
