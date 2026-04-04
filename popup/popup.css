@@ -315,7 +315,9 @@ header {
 .modal-vars-table th:first-child { width: 40%; }
 .modal-vars-table tbody tr { border-bottom: 1px solid var(--border); }
 .modal-vars-table tbody tr:last-child { border-bottom: none; }
-.modal-var-name { padding: 6px 10px; }
+.modal-vars-table tbody tr.has-hint,
+.modal-vars-table tbody tr.has-hint td { border-bottom: none; }
+.modal-var-name { padding: 6px 10px; vertical-align: middle; }
 .modal-var-name code {
   font-family: var(--mono);
   font-size: 11px;
@@ -325,6 +327,20 @@ header {
   border-radius: 4px;
   white-space: nowrap;
 }
+/* Hint row — flush with row above, full-width subtitle */
+.modal-var-hint-row { border-bottom: 1px solid var(--border); }
+.modal-var-hint-row td { border: none; }
+.modal-var-hint-cell {
+  padding: 0 10px 7px;
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.4;
+  text-align: right;
+}
+/* Kill the border on the main row when a hint row follows */
+.has-hint { border-bottom: none !important; }
+.has-hint td { border-bottom: none !important; }
 .modal-vars-table td:last-child { padding: 4px 6px; }
 .modal-vars-table input {
   width: 100%;

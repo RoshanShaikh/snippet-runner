@@ -129,13 +129,17 @@ function openRunModal(snippet) {
         </thead>
         <tbody>
           ${vars.map(v => `
-            <tr>
+            <tr class="${v.fieldDesc ? 'has-hint' : ''}">
               <td class="modal-var-name"><code>{{${escapeHtml(v.name)}}}</code></td>
               <td><input class="run-var-input" data-var="${escapeHtml(v.name)}" type="text"
                 placeholder="${escapeHtml(v.default || '(empty)')}"
                 value="${escapeHtml(v.default || '')}"
                 autocomplete="off" spellcheck="false"/></td>
             </tr>
+            ${v.fieldDesc ? `
+            <tr class="modal-var-hint-row">
+              <td colspan="2" class="modal-var-hint-cell">${escapeHtml(v.fieldDesc)}</td>
+            </tr>` : ''}
           `).join('')}
         </tbody>
       </table>

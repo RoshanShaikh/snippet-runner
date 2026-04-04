@@ -120,7 +120,9 @@
   color: var(--muted);
   text-align: left;
 }
-.vars-table th:first-child { width: 38%; }
+.vars-table th:first-child { width: 28%; }
+.vars-table th:nth-child(2) { width: 30%; }
+/* third column (description) takes remaining space */
 .vars-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s; }
 .vars-table tbody tr:last-child { border-bottom: none; }
 .vars-table tbody tr:hover { background: rgba(255,255,255,0.02); }

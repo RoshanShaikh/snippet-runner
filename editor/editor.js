@@ -15,11 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (snippet) populateForm(snippet);
   }
 
-  const ta = document.getElementById('field-code');
-
-  // Auto-detect variables as user types
-  ta.addEventListener('input', () => syncVarsFromCode());
-
+  document.getElementById('field-code').addEventListener('input', () => syncVarsFromCode());
   document.getElementById('btn-save').addEventListener('click', saveEditor);
   document.getElementById('btn-cancel').addEventListener('click', () => window.close());
 });
@@ -46,15 +42,19 @@ function syncVarsFromCode(existingVars = []) {
   const names = extractVarNames(code);
   const list  = document.getElementById('variables-list');
 
-  // Preserve existing default values across re-syncs
-  const currentDefaults = {};
+  // Preserve existing values across re-syncs
+  const current = {};
   list.querySelectorAll('tr[data-var-name]').forEach(row => {
     const n = row.dataset.varName;
-    const d = row.querySelector('.var-default')?.value;
-    if (n !== undefined && d !== undefined) currentDefaults[n] = d;
+    current[n] = {
+      default: row.querySelector('.var-default')?.value ?? '',
+      fieldDesc: row.querySelector('.var-field-desc')?.value ?? ''
+    };
   });
   existingVars.forEach(v => {
-    if (!(v.name in currentDefaults)) currentDefaults[v.name] = v.default || '';
+    if (!(v.name in current)) {
+      current[v.name] = { default: v.default || '', fieldDesc: v.fieldDesc || '' };
+    }
   });
 
   list.innerHTML = '';
@@ -66,28 +66,37 @@ function syncVarsFromCode(existingVars = []) {
     return;
   }
 
-  const desc = document.createElement('p');
-  desc.className = 'vars-description';
-  desc.innerHTML = `Each <code>{{placeholder}}</code> is replaced with its value at run time. Set a default here — it will be pre-filled when running and can be overridden.`;
-  list.appendChild(desc);
+  const banner = document.createElement('p');
+  banner.className = 'vars-description';
+  banner.innerHTML = `Each <code>{{placeholder}}</code> is replaced with its value at run time. Set defaults and descriptions — they appear in the run modal to guide input.`;
+  list.appendChild(banner);
 
   const table = document.createElement('table');
   table.className = 'vars-table';
   table.innerHTML = `
-    <thead><tr><th>Placeholder</th><th>Default JS value</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Placeholder</th>
+        <th>Default JS value</th>
+        <th>Description / type hint</th>
+      </tr>
+    </thead>
     <tbody></tbody>
   `;
   const tbody = table.querySelector('tbody');
 
   names.forEach(name => {
-    const defaultVal = currentDefaults[name] ?? '';
+    const saved = current[name] ?? { default: '', fieldDesc: '' };
     const tr = document.createElement('tr');
     tr.dataset.varName = name;
     tr.innerHTML = `
       <td class="var-name-cell"><code>{{${escapeHtml(name)}}}</code></td>
       <td><input class="var-default var-default-input" type="text"
-        placeholder="e.g. 'hello', 42, true, null"
-        value="${escapeHtml(defaultVal)}" autocomplete="off" spellcheck="false"/></td>
+        placeholder="e.g. 'hello', 42, true"
+        value="${escapeHtml(saved.default)}" autocomplete="off" spellcheck="false"/></td>
+      <td><input class="var-field-desc var-default-input" type="text"
+        placeholder="e.g. Auth token (string)"
+        value="${escapeHtml(saved.fieldDesc)}" autocomplete="off" spellcheck="false"/></td>
     `;
     tbody.appendChild(tr);
   });
@@ -106,9 +115,10 @@ async function saveEditor() {
 
   const variables = [];
   document.querySelectorAll('#variables-list tr[data-var-name]').forEach(row => {
-    const varName    = row.dataset.varName;
-    const varDefault = row.querySelector('.var-default')?.value || '';
-    if (varName) variables.push({ name: varName, default: varDefault });
+    const varName     = row.dataset.varName;
+    const varDefault  = row.querySelector('.var-default')?.value || '';
+    const varFieldDesc = row.querySelector('.var-field-desc')?.value || '';
+    if (varName) variables.push({ name: varName, default: varDefault, fieldDesc: varFieldDesc });
   });
 
   const snippets = await loadSnippets();

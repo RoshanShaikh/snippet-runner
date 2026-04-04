@@ -94,6 +94,7 @@ function render(main, result) {
         </div>
         <div class="section-header-right">
           ${logCountHtml}
+          ${result.logs && result.logs.length > 0 ? '<button id="btn-copy-output" class="btn-ghost btn-xs">Copy</button>' : ''}
         </div>
       </div>
       <div class="section-body"><div class="section-body-inner">
@@ -121,5 +122,18 @@ function render(main, result) {
       setTimeout(() => btn.textContent = 'Copy', 1500);
     });
   });
+
+  const copyOutputBtn = document.getElementById('btn-copy-output');
+  if (copyOutputBtn) {
+    copyOutputBtn.addEventListener('click', () => {
+      const text = (result.logs || [])
+        .map(l => l.text)
+        .join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        copyOutputBtn.textContent = 'Copied!';
+        setTimeout(() => copyOutputBtn.textContent = 'Copy', 1500);
+      });
+    });
+  }
 
 }
