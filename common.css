@@ -106,6 +106,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  table-layout: fixed; /* columns respect defined widths, no blowout */
 }
 .vars-table thead tr {
   background: var(--surface2);

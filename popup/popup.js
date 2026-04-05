@@ -133,9 +133,15 @@ function openRunModal(snippet) {
               <td class="modal-var-name"><code>{{${escapeHtml(v.name)}}}</code></td>
               <td class="modal-var-input-cell">
                 ${v.multiline
-                  ? `<textarea class="run-var-input run-var-textarea" data-var="${escapeHtml(v.name)}"
-                      autocomplete="off" spellcheck="false"
-                      placeholder="${escapeHtml(v.default || '(empty)')}">${escapeHtml(v.default || '')}</textarea>`
+                  ? `<input type="hidden" class="run-var-input" data-var="${escapeHtml(v.name)}" value="${escapeHtml(v.default || '')}"/>
+                     <div class="multiline-preview-cell">
+                       <span class="multiline-preview ${v.default ? 'has-value' : ''}" data-var="${escapeHtml(v.name)}">
+                         ${v.default ? escapeHtml(v.default.split('\n')[0]) + (v.default.includes('\n') ? ' …' : '') : '(empty)'}
+                       </span>
+                       <button class="btn-edit-multiline" type="button"
+                         data-var="${escapeHtml(v.name)}"
+                         data-hint="${escapeHtml(v.fieldDesc || '')}">Edit</button>
+                     </div>`
                   : `<input class="run-var-input" data-var="${escapeHtml(v.name)}" type="text"
                       placeholder="${escapeHtml(v.default || '(empty)')}"
                       value="${escapeHtml(v.default || '')}"
@@ -154,8 +160,31 @@ function openRunModal(snippet) {
   }
 
   document.getElementById('run-modal').classList.remove('hidden');
-  const first = modalVars.querySelector('input');
+  const first = modalVars.querySelector('input:not([type="hidden"])');
   if (first) setTimeout(() => first.focus(), 50);
+
+  // Wire up Edit buttons for multiline vars
+  modalVars.querySelectorAll('.btn-edit-multiline').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const varName = btn.dataset.var;
+      const hint    = btn.dataset.hint;
+      const hidden  = modalVars.querySelector(`.run-var-input[data-var="${varName}"]`);
+      const preview = modalVars.querySelector(`.multiline-preview[data-var="${varName}"]`);
+      openMultilineOverlay(
+        '{{' + varName + '}}',
+        hint,
+        hidden ? hidden.value : '',
+        (newVal) => {
+          if (hidden) hidden.value = newVal;
+          if (preview) {
+            const firstLine = newVal ? newVal.split('\n')[0] + (newVal.includes('\n') ? ' …' : '') : '(empty)';
+            preview.textContent = firstLine;
+            preview.className = 'multiline-preview' + (newVal ? ' has-value' : '');
+          }
+        }
+      );
+    });
+  });
 }
 
 function closeRunModal() {
@@ -390,10 +419,42 @@ document.addEventListener('mousemove', e => {
   }
 });
 
+// ─── MULTILINE OVERLAY ────────────────────────────────────────────────────────
+
+let _multilineCallback = null;
+
+function openMultilineOverlay(label, hint, currentValue, onApply) {
+  _multilineCallback = onApply;
+  document.getElementById('multiline-label').textContent = label;
+  document.getElementById('multiline-hint').textContent = hint || '';
+  document.getElementById('multiline-textarea').value = currentValue;
+  document.getElementById('multiline-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('multiline-textarea').focus(), 50);
+}
+
+function closeMultilineOverlay() {
+  document.getElementById('multiline-overlay').classList.add('hidden');
+  _multilineCallback = null;
+}
+
 // ─── Wire-up ───────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-new').addEventListener('click', () => openEditorPage());
+
+  // Multiline overlay
+  document.getElementById('multiline-confirm').addEventListener('click', () => {
+    const val = document.getElementById('multiline-textarea').value;
+    if (_multilineCallback) _multilineCallback(val);
+    closeMultilineOverlay();
+  });
+  document.getElementById('multiline-cancel').addEventListener('click', closeMultilineOverlay);
+  document.getElementById('multiline-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeMultilineOverlay();
+  });
+  document.getElementById('multiline-overlay').addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeMultilineOverlay();
+  });
 
   document.getElementById('btn-export').addEventListener('click', exportSnippets);
   document.getElementById('btn-import').addEventListener('click', openImportPicker);

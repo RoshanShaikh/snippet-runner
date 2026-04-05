@@ -2,7 +2,7 @@
 
 /* ── BODY ── */
 body {
-  width: 480px;
+  width: 560px;
   min-height: 480px;
   max-height: 680px;
   background: var(--bg);
@@ -241,7 +241,7 @@ header {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  width: 440px;
+  width: 520px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -341,7 +341,7 @@ header {
 /* Kill the border on the main row when a hint row follows */
 .has-hint { border-bottom: none !important; }
 .has-hint td { border-bottom: none !important; }
-.modal-vars-table td:last-child { padding: 4px 6px; }
+.modal-vars-table td:last-child { padding: 2px 4px; }
 .modal-vars-table input {
   width: 100%;
   background: transparent;
@@ -359,8 +359,8 @@ header {
 .modal-vars-table input::placeholder { color: var(--muted); opacity: 0.45; }
 .modal-no-vars { font-size: 12px; color: var(--muted); font-style: italic; text-align: center; padding: 4px 0; }
 
-/* Multi-line textarea in run modal */
-.modal-var-input-cell { padding: 4px 6px; vertical-align: top; }
+/* Multi-line input cell — same padding as the input cell so rows align */
+.modal-var-input-cell { padding: 4px 6px; vertical-align: middle; }
 .run-var-textarea {
   width: 100%;
   min-height: 80px;
@@ -470,7 +470,7 @@ header {
   pointer-events: none;
   white-space: normal;
   text-align: center;
-  max-width: 440px;
+  max-width: 520px;
   z-index: 200;
 }
 #toast.show  { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -496,3 +496,104 @@ header {
 .run-var-textarea:hover { border-color: var(--border); background: var(--bg); }
 .run-var-textarea:focus { border-color: var(--accent); background: var(--bg); }
 .run-var-textarea::placeholder { color: var(--muted); opacity: 0.45; }
+
+/* ── MULTILINE OVERLAY ── */
+.multiline-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  backdrop-filter: blur(3px);
+}
+.multiline-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: 500px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+.multiline-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.multiline-label {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent2);
+}
+.multiline-hint {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+}
+.multiline-textarea {
+  width: 100%;
+  min-height: 200px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  caret-color: var(--accent);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 12px 14px;
+  outline: none;
+  resize: vertical;
+  tab-size: 2;
+  transition: border-color 0.15s;
+}
+.multiline-textarea:focus { border-color: var(--accent); }
+.multiline-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.multiline-actions .btn-primary { font-size: 12px; padding: 6px 16px; }
+.multiline-actions .btn-ghost   { font-size: 12px; padding: 6px 14px; }
+
+/* Multi-line preview in table cells */
+.multiline-preview-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  /* Match the input's own padding/border so rows visually align */
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+.multiline-preview {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.multiline-preview.has-value { color: var(--text); font-style: normal; }
+.btn-edit-multiline {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--accent2);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.btn-edit-multiline:hover { border-color: var(--accent2); background: rgba(79,201,245,0.08); }

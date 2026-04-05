@@ -16,6 +16,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   document.getElementById('field-code').addEventListener('input', () => syncVarsFromCode());
+
+  // Multiline overlay
+  document.getElementById('multiline-confirm').addEventListener('click', () => {
+    const val = document.getElementById('multiline-textarea').value;
+    if (_multilineCallback) _multilineCallback(val);
+    closeMultilineOverlay();
+  });
+  document.getElementById('multiline-cancel').addEventListener('click', closeMultilineOverlay);
+  document.getElementById('multiline-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeMultilineOverlay();
+  });
+  document.getElementById('multiline-overlay').addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeMultilineOverlay();
+  });
   document.getElementById('btn-save').addEventListener('click', saveEditor);
   document.getElementById('btn-cancel').addEventListener('click', () => window.close());
 });
@@ -39,16 +53,44 @@ function extractVarNames(code) {
 
 // ─── Build / swap the default-value cell ──────────────────────────────────────
 
-function setDefaultField(td, value, multiline) {
+function setDefaultField(td, value, multiline, varName, varHint) {
   td.innerHTML = '';
   if (multiline) {
-    const ta = document.createElement('textarea');
-    ta.className = 'var-default var-default-textarea';
-    ta.autocomplete = 'off';
-    ta.spellcheck = false;
-    ta.placeholder = 'e.g. {\n  "key": "value"\n}';
-    ta.value = value;
-    td.appendChild(ta);
+    // Hidden input stores the actual value
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.className = 'var-default';
+    hidden.value = value;
+
+    // Preview + Edit button
+    const cell = document.createElement('div');
+    cell.className = 'multiline-preview-cell';
+
+    const preview = document.createElement('span');
+    preview.className = 'multiline-preview' + (value ? ' has-value' : '');
+    preview.textContent = value ? value.split('\n')[0] + (value.includes('\n') ? ' …' : '') : '(empty)';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn-edit-multiline';
+    editBtn.textContent = 'Edit';
+    editBtn.type = 'button';
+    editBtn.addEventListener('click', () => {
+      openMultilineOverlay(
+        '{{' + varName + '}}',
+        varHint || '',
+        hidden.value,
+        (newVal) => {
+          hidden.value = newVal;
+          preview.textContent = newVal ? newVal.split('\n')[0] + (newVal.includes('\n') ? ' …' : '') : '(empty)';
+          preview.className = 'multiline-preview' + (newVal ? ' has-value' : '');
+        }
+      );
+    });
+
+    cell.appendChild(preview);
+    cell.appendChild(editBtn);
+    td.appendChild(hidden);
+    td.appendChild(cell);
   } else {
     const inp = document.createElement('input');
     inp.type = 'text';
@@ -59,6 +101,24 @@ function setDefaultField(td, value, multiline) {
     inp.value = value;
     td.appendChild(inp);
   }
+}
+
+// ─── Multiline overlay ─────────────────────────────────────────────────────────
+
+let _multilineCallback = null;
+
+function openMultilineOverlay(label, hint, currentValue, onApply) {
+  _multilineCallback = onApply;
+  document.getElementById('multiline-label').textContent = label;
+  document.getElementById('multiline-hint').textContent = hint;
+  document.getElementById('multiline-textarea').value = currentValue;
+  document.getElementById('multiline-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('multiline-textarea').focus(), 50);
+}
+
+function closeMultilineOverlay() {
+  document.getElementById('multiline-overlay').classList.add('hidden');
+  _multilineCallback = null;
 }
 
 // ─── Sync vars table from code ────────────────────────────────────────────────
@@ -118,7 +178,7 @@ function syncVarsFromCode(existingVars = []) {
     // Default value cell
     const tdDefault = document.createElement('td');
     tdDefault.className = 'td-default';
-    setDefaultField(tdDefault, saved.default, saved.multiline);
+    setDefaultField(tdDefault, saved.default, saved.multiline, name, saved.fieldDesc);
 
     // Description cell
     const tdDesc = document.createElement('td');
@@ -141,7 +201,8 @@ function syncVarsFromCode(existingVars = []) {
     checkbox.checked = saved.multiline;
     checkbox.addEventListener('change', function () {
       const currentVal = tdDefault.querySelector('.var-default')?.value || '';
-      setDefaultField(tdDefault, currentVal, this.checked);
+      const currentDesc = tdDesc.querySelector('.var-field-desc')?.value || '';
+      setDefaultField(tdDefault, currentVal, this.checked, name, currentDesc);
     });
     tdCheck.appendChild(checkbox);
 

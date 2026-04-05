@@ -59,6 +59,21 @@
     <div id="toast" class="toast hidden"></div>
   </div>
 
+  <!-- MULTILINE EDITOR OVERLAY -->
+  <div id="multiline-overlay" class="multiline-overlay hidden">
+    <div class="multiline-box multiline-box--page">
+      <div class="multiline-header">
+        <span id="multiline-label" class="multiline-label"></span>
+        <span id="multiline-hint" class="multiline-hint"></span>
+      </div>
+      <textarea id="multiline-textarea" class="multiline-textarea" spellcheck="false" autocomplete="off"></textarea>
+      <div class="multiline-actions">
+        <button id="multiline-cancel" class="btn-ghost">Cancel</button>
+        <button id="multiline-confirm" class="btn-primary">Apply</button>
+      </div>
+    </div>
+  </div>
+
   <script src="../shared.js"></script>
   <script src="editor.js"></script>
 </body>
