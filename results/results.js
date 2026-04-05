@@ -4,7 +4,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const main = document.getElementById('results-main');
   main.innerHTML = `<div class="loading-results">Loading results<span class="loading-dots"></span></div>`;
 
-  const result = await waitForResult(3000);
+  // Get result ID from URL param, fall back to polling lastResult for compat
+  const params = new URLSearchParams(window.location.search);
+  const resultId = params.get('id');
+
+  let result = null;
+  if (resultId) {
+    result = await waitForResultById(resultId, 3000);
+  } else {
+    result = await waitForResult(3000);
+  }
 
   if (!result) {
     main.innerHTML = `
@@ -17,18 +26,91 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   render(main, result);
+  await renderHistorySidebar(result.id);
 });
+
+// ─── Wait helpers ──────────────────────────────────────────────────────────────
+
+async function waitForResultById(id, timeoutMs) {
+  const interval = 100;
+  const attempts = timeoutMs / interval;
+  for (let i = 0; i < attempts; i++) {
+    const r = await loadResultById(id);
+    if (r) return r;
+    await new Promise(res => setTimeout(res, interval));
+  }
+  return null;
+}
 
 async function waitForResult(timeoutMs) {
   const interval = 100;
   const attempts = timeoutMs / interval;
   for (let i = 0; i < attempts; i++) {
-    const result = await loadResult();
-    if (result) return result;
-    await new Promise(r => setTimeout(r, interval));
+    const r = await loadResult();
+    if (r) return r;
+    await new Promise(res => setTimeout(res, interval));
   }
   return null;
 }
+
+// ─── History sidebar ───────────────────────────────────────────────────────────
+
+async function renderHistorySidebar(activeId) {
+  const history = await loadHistory();
+  if (history.length <= 1) return; // no sidebar needed for a single result
+
+  const sidebar = document.getElementById('history-sidebar');
+  if (!sidebar) return;
+  sidebar.innerHTML = '';
+
+  const title = document.createElement('div');
+  title.className = 'history-title';
+  title.textContent = 'History';
+  sidebar.appendChild(title);
+
+  history.forEach(entry => {
+    const item = document.createElement('a');
+    item.className = 'history-item' + (entry.id === activeId ? ' active' : '');
+    item.href = 'results.html?id=' + entry.id;
+
+    const hasError = (entry.logs || []).some(l => l.level === 'error');
+    const dot = document.createElement('span');
+    dot.className = 'history-dot ' + (hasError ? 'error' : 'success');
+
+    const info = document.createElement('span');
+    info.className = 'history-info';
+
+    const name = document.createElement('span');
+    name.className = 'history-name';
+    name.textContent = entry.snippetName;
+
+    const time = document.createElement('span');
+    time.className = 'history-time';
+    time.textContent = formatRelativeTime(entry.ranAt);
+
+    info.appendChild(name);
+    info.appendChild(time);
+    item.appendChild(dot);
+    item.appendChild(info);
+    sidebar.appendChild(item);
+  });
+
+  // Show the sidebar layout
+  document.body.classList.add('has-sidebar');
+}
+
+function formatRelativeTime(ts) {
+  const diff = Date.now() - ts;
+  const s = Math.floor(diff / 1000);
+  if (s < 60)  return 'just now';
+  const m = Math.floor(s / 60);
+  if (m < 60)  return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24)  return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+
+// ─── Render result ─────────────────────────────────────────────────────────────
 
 function render(main, result) {
   const hasError    = result.logs.some(l => l.level === 'error');
@@ -65,6 +147,7 @@ function render(main, result) {
           <a href="${escapeHtml(result.pageUrl)}" target="_blank" class="page-link"
             title="${escapeHtml(result.pageUrl)}">${escapeHtml(result.pageTitle || result.pageUrl)}</a>
           &nbsp;·&nbsp; ${ranAt.toLocaleTimeString()}
+          &nbsp;·&nbsp; ${new Date(result.ranAt).toLocaleDateString()}
         </div>
       </div>
     </div>
@@ -103,10 +186,8 @@ function render(main, result) {
     </section>
   `;
 
-  // Toggle collapse on header click
   main.querySelectorAll('.section-header').forEach(header => {
     header.addEventListener('click', e => {
-      // Don't collapse when clicking the Copy button
       if (e.target.closest('button')) return;
       const section = header.closest('.collapsible');
       section.classList.toggle('collapsed');
@@ -126,14 +207,11 @@ function render(main, result) {
   const copyOutputBtn = document.getElementById('btn-copy-output');
   if (copyOutputBtn) {
     copyOutputBtn.addEventListener('click', () => {
-      const text = (result.logs || [])
-        .map(l => l.text)
-        .join('\n');
+      const text = (result.logs || []).map(l => l.text).join('\n');
       navigator.clipboard.writeText(text).then(() => {
         copyOutputBtn.textContent = 'Copied!';
         setTimeout(() => copyOutputBtn.textContent = 'Copy', 1500);
       });
     });
   }
-
 }

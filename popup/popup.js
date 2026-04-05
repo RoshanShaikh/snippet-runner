@@ -16,20 +16,30 @@ function showToast(msg, type = 'success') {
 
 // ─── LIST ──────────────────────────────────────────────────────────────────────
 
-async function renderList() {
+async function renderList(query = '') {
   const snippets = await loadSnippets();
-  const list = document.getElementById('snippet-list');
+  const list  = document.getElementById('snippet-list');
   const empty = document.getElementById('snippet-list-empty');
 
   list.innerHTML = '';
 
-  if (snippets.length === 0) {
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? snippets.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        (s.desc || '').toLowerCase().includes(q))
+    : snippets;
+
+  if (filtered.length === 0) {
     empty.classList.remove('hidden');
+    empty.querySelector('p').innerHTML = q
+      ? `No snippets match <strong>"${escapeHtml(q)}"</strong>`
+      : 'No snippets yet.<br/>Hit <strong>＋</strong> to create one.';
     return;
   }
   empty.classList.add('hidden');
 
-  snippets.forEach(snippet => {
+  filtered.forEach(snippet => {
     const li = document.createElement('li');
     li.className = 'snippet-item';
     li.dataset.id = snippet.id;
@@ -270,8 +280,10 @@ async function executeSnippet() {
     let parsedLogs = [];
     try { parsedLogs = JSON.parse(logs || '[]'); } catch (_) {}
 
-    // Build the result object and save to storage
+    // Build the result object with a unique ID
+    const resultId = uid();
     const resultData = {
+      id: resultId,
       snippetId,
       snippetName,
       code,
@@ -281,18 +293,15 @@ async function executeSnippet() {
       pageTitle: tab.title
     };
 
-    // Explicitly wait for storage write to complete via callback
-    await new Promise(resolve => {
-      chrome.storage.local.set({ lastResult: resultData }, resolve);
-    });
+    // Save to history (prepends, capped at 50) — also keep lastResult for compat
+    await saveToHistory(resultData);
+    await saveResult(resultData);
 
     overlay.classList.add('hidden');
 
-    // Open results tab — storage is guaranteed written before this line
-    chrome.tabs.create({ url: chrome.runtime.getURL('results/results.html') });
+    // Open results tab with the specific result ID
+    chrome.tabs.create({ url: chrome.runtime.getURL('results/results.html') + '?id=' + resultId });
 
-    // Delay close so the popup's JS context isn't torn down before
-    // the storage write propagates to the new tab's read
     setTimeout(() => window.close(), 300);
 
   } catch (err) {
@@ -473,6 +482,21 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('run-modal').addEventListener('keydown', e => {
     if (e.key === 'Enter') executeSnippet();
     if (e.key === 'Escape') closeRunModal();
+  });
+
+  // Search
+  const searchInput = document.getElementById('search-input');
+  const searchClear = document.getElementById('search-clear');
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value;
+    searchClear.classList.toggle('hidden', !q);
+    renderList(q);
+  });
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    searchClear.classList.add('hidden');
+    renderList();
+    searchInput.focus();
   });
 
   renderList();

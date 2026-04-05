@@ -87,6 +87,45 @@ header {
 .btn-action.edit { color: var(--accent2); }
 .btn-action.del  { color: var(--danger); }
 
+/* ── SEARCH BAR ── */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin: 8px 8px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+  flex-shrink: 0;
+}
+.search-bar:focus-within { border-color: var(--accent); }
+.search-icon { color: var(--muted); flex-shrink: 0; }
+.search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.search-input::placeholder { color: var(--muted); opacity: 0.6; }
+.search-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.search-clear:hover { color: var(--text); }
+
 /* ── SNIPPET LIST ── */
 #snippet-list {
   list-style: none;
