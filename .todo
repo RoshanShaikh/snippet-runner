@@ -1,0 +1,3 @@
+☐ Select Snippet on import/export.
+☐ Remove merge/overwrite. Keep the selected snippets, if name already exists add differntiater at the end. If Id matches generate a new id.
+☐ Keyboard shortcuts - for search, opening popup, and executing a specific snippet.

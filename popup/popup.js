@@ -317,25 +317,68 @@ async function exportSnippets() {
   const snippets = await loadSnippets();
   if (snippets.length === 0) { showToast('No snippets to export', 'error'); return; }
 
-  const payload = {
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    snippets
+  const checklist = document.getElementById('export-checklist');
+  const countEl   = document.getElementById('export-selected-count');
+  checklist.innerHTML = '';
+
+  snippets.forEach(s => {
+    const row = document.createElement('label');
+    row.className = 'checklist-row';
+    row.innerHTML = `
+      <input type="checkbox" class="checklist-cb" data-id="${escapeHtml(s.id)}" checked
+        accent-color="var(--accent)"/>
+      <span class="checklist-name">${escapeHtml(s.name)}</span>
+      ${s.desc ? `<span class="checklist-desc">${escapeHtml(s.desc)}</span>` : ''}
+    `;
+    checklist.appendChild(row);
+  });
+
+  const updateCount = () => {
+    const n = checklist.querySelectorAll('.checklist-cb:checked').length;
+    countEl.textContent = `${n} of ${snippets.length} selected`;
+    document.getElementById('export-select-all').checked = n === snippets.length;
+    document.getElementById('export-select-all').indeterminate = n > 0 && n < snippets.length;
+  };
+  checklist.addEventListener('change', updateCount);
+  updateCount();
+
+  document.getElementById('export-select-all').onchange = function() {
+    checklist.querySelectorAll('.checklist-cb').forEach(cb => cb.checked = this.checked);
+    updateCount();
   };
 
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `snippetrunner-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast(`Exported ${snippets.length} snippet${snippets.length > 1 ? 's' : ''}`);
+  document.getElementById('export-modal').classList.remove('hidden');
+}
+
+function doExport() {
+  const checklist = document.getElementById('export-checklist');
+  const selectedIds = new Set(
+    [...checklist.querySelectorAll('.checklist-cb:checked')].map(cb => cb.dataset.id)
+  );
+  if (selectedIds.size === 0) { showToast('Select at least one snippet', 'error'); return; }
+
+  loadSnippets().then(snippets => {
+    const selected = snippets.filter(s => selectedIds.has(s.id));
+    const payload = { version: 1, exportedAt: new Date().toISOString(), snippets: selected };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `snippetrunner-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    document.getElementById('export-modal').classList.add('hidden');
+    showToast(`Exported ${selected.length} snippet${selected.length > 1 ? 's' : ''}`);
+  });
+}
+
+function closeExportModal() {
+  document.getElementById('export-modal').classList.add('hidden');
 }
 
 // ─── IMPORT ───────────────────────────────────────────────────────────────────
 
-let pendingImport = null; // holds parsed snippets waiting for user confirmation
+let pendingImport = null;
 
 function openImportPicker() {
   document.getElementById('import-file-input').click();
@@ -344,32 +387,56 @@ function openImportPicker() {
 function onImportFileChosen(e) {
   const file = e.target.files[0];
   if (!file) return;
-  // Reset so same file can be chosen again
   e.target.value = '';
 
   const reader = new FileReader();
   reader.onload = ev => {
     try {
       const data = JSON.parse(ev.target.result);
-      const snippets = Array.isArray(data) ? data           // bare array
-                     : Array.isArray(data.snippets) ? data.snippets  // wrapped
+      const snippets = Array.isArray(data) ? data
+                     : Array.isArray(data.snippets) ? data.snippets
                      : null;
 
-      if (!snippets || snippets.length === 0) {
-        showToast('No valid snippets found in file', 'error');
-        return;
-      }
+      if (!snippets || snippets.length === 0) { showToast('No valid snippets found in file', 'error'); return; }
 
-      // Validate each entry has at least a name and code
       const valid = snippets.filter(s => s && typeof s.name === 'string' && typeof s.code === 'string');
-      if (valid.length === 0) {
-        showToast('No valid snippets found in file', 'error');
-        return;
-      }
+      if (valid.length === 0) { showToast('No valid snippets found in file', 'error'); return; }
 
       pendingImport = valid;
+
       document.getElementById('import-summary').textContent =
         `Found ${valid.length} snippet${valid.length > 1 ? 's' : ''} in "${file.name}"`;
+
+      // Build checklist
+      const checklist = document.getElementById('import-checklist');
+      const countEl   = document.getElementById('import-selected-count');
+      checklist.innerHTML = '';
+
+      valid.forEach(s => {
+        const row = document.createElement('label');
+        row.className = 'checklist-row';
+        row.innerHTML = `
+          <input type="checkbox" class="checklist-cb" data-id="${escapeHtml(s.id || '')}" checked/>
+          <span class="checklist-name">${escapeHtml(s.name)}</span>
+          ${s.desc ? `<span class="checklist-desc">${escapeHtml(s.desc)}</span>` : ''}
+        `;
+        checklist.appendChild(row);
+      });
+
+      const updateCount = () => {
+        const n = checklist.querySelectorAll('.checklist-cb:checked').length;
+        countEl.textContent = `${n} of ${valid.length} selected`;
+        document.getElementById('import-select-all').checked = n === valid.length;
+        document.getElementById('import-select-all').indeterminate = n > 0 && n < valid.length;
+      };
+      checklist.addEventListener('change', updateCount);
+      updateCount();
+
+      document.getElementById('import-select-all').onchange = function() {
+        checklist.querySelectorAll('.checklist-cb').forEach(cb => cb.checked = this.checked);
+        updateCount();
+      };
+
       document.getElementById('import-options').classList.remove('hidden');
       document.getElementById('import-modal').classList.remove('hidden');
     } catch {
@@ -382,8 +449,19 @@ function onImportFileChosen(e) {
 async function confirmImport() {
   if (!pendingImport) return;
 
+  const checklist = document.getElementById('import-checklist');
+  const selectedIds = new Set(
+    [...checklist.querySelectorAll('.checklist-cb:checked')].map(cb => cb.dataset.id)
+  );
+
+  if (selectedIds.size === 0) { showToast('Select at least one snippet', 'error'); return; }
+
+  // Map selected by index since ids may be missing
+  const checkboxes = [...checklist.querySelectorAll('.checklist-cb')];
+  const selected = pendingImport.filter((_, i) => checkboxes[i]?.checked);
+
   const mode = document.querySelector('input[name="import-mode"]:checked').value;
-  const incoming = pendingImport.map(s => ({
+  const incoming = selected.map(s => ({
     ...s,
     id: s.id || uid(),
     variables: s.variables || [],
@@ -393,8 +471,8 @@ async function confirmImport() {
   let final;
   if (mode === 'overwrite') {
     final = incoming;
+    showToast(`Replaced with ${final.length} snippet${final.length > 1 ? 's' : ''}`);
   } else {
-    // Merge: skip any whose id already exists
     const existing = await loadSnippets();
     const existingIds = new Set(existing.map(s => s.id));
     const newOnes = incoming.filter(s => !existingIds.has(s.id));
@@ -405,8 +483,6 @@ async function confirmImport() {
   }
 
   await saveSnippets(final);
-  if (mode === 'overwrite') showToast(`Replaced with ${final.length} snippet${final.length > 1 ? 's' : ''}`);
-
   closeImportModal();
   renderList();
 }
@@ -466,6 +542,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-export').addEventListener('click', exportSnippets);
+  document.getElementById('export-cancel').addEventListener('click', closeExportModal);
+  document.getElementById('export-confirm').addEventListener('click', doExport);
+  document.getElementById('export-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeExportModal();
+  });
+
   document.getElementById('btn-import').addEventListener('click', openImportPicker);
   document.getElementById('import-file-input').addEventListener('change', onImportFileChosen);
   document.getElementById('import-cancel').addEventListener('click', closeImportModal);
@@ -484,19 +566,53 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') closeRunModal();
   });
 
-  // Search
+  // Search — toggle bar on button click, close on clear/Escape
+  const searchBar   = document.getElementById('search-bar');
   const searchInput = document.getElementById('search-input');
-  const searchClear = document.getElementById('search-clear');
-  searchInput.addEventListener('input', () => {
-    const q = searchInput.value;
-    searchClear.classList.toggle('hidden', !q);
-    renderList(q);
-  });
-  searchClear.addEventListener('click', () => {
+  const btnSearch   = document.getElementById('btn-search');
+  const btnImport   = document.getElementById('btn-import');
+  const btnExport   = document.getElementById('btn-export');
+  const btnNew   = document.getElementById('btn-new');
+
+  function openSearch() {
+    searchBar.classList.remove('hidden');
+    btnSearch.classList.add('active');
+    btnImport.classList.add('hidden');
+    btnExport.classList.add('hidden');
+    btnNew.classList.add('hidden');
+    setTimeout(() => searchInput.focus(), 50);
+    btnSearch.innerHTML = `
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    `
+  }
+  function closeSearch() {
+    searchBar.classList.add('hidden');
+    btnSearch.classList.remove('active');
+    btnImport.classList.remove('hidden');
+    btnExport.classList.remove('hidden');
+    btnNew.classList.remove('hidden');
     searchInput.value = '';
-    searchClear.classList.add('hidden');
+    btnSearch.innerHTML = `
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    `
     renderList();
-    searchInput.focus();
+  }
+
+  btnSearch.addEventListener('click', () => {
+    searchBar.classList.contains('hidden') ? openSearch() : closeSearch();
+  });
+
+  searchInput.addEventListener('input', () => {
+    renderList(searchInput.value);
+  });
+
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeSearch();
   });
 
   renderList();
