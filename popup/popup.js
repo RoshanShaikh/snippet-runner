@@ -359,7 +359,9 @@ function doExport() {
 
   loadSnippets().then(snippets => {
     const selected = snippets.filter(s => selectedIds.has(s.id));
-    const payload = { version: 1, exportedAt: new Date().toISOString(), snippets: selected };
+    // Strip IDs before exporting — new IDs will be generated on import
+    const exportable = selected.map(({ id: _id, ...rest }) => rest);
+    const payload = { version: 1, exportedAt: new Date().toISOString(), snippets: exportable };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
@@ -450,41 +452,37 @@ async function confirmImport() {
   if (!pendingImport) return;
 
   const checklist = document.getElementById('import-checklist');
-  const selectedIds = new Set(
-    [...checklist.querySelectorAll('.checklist-cb:checked')].map(cb => cb.dataset.id)
-  );
-
-  if (selectedIds.size === 0) { showToast('Select at least one snippet', 'error'); return; }
-
-  // Map selected by index since ids may be missing
   const checkboxes = [...checklist.querySelectorAll('.checklist-cb')];
   const selected = pendingImport.filter((_, i) => checkboxes[i]?.checked);
 
-  const mode = document.querySelector('input[name="import-mode"]:checked').value;
-  const incoming = selected.map(s => ({
-    ...s,
-    id: s.id || uid(),
-    variables: s.variables || [],
-    createdAt: s.createdAt || Date.now()
-  }));
+  if (selected.length === 0) { showToast('Select at least one snippet', 'error'); return; }
 
-  let final;
-  if (mode === 'overwrite') {
-    final = incoming;
-    showToast(`Replaced with ${final.length} snippet${final.length > 1 ? 's' : ''}`);
-  } else {
-    const existing = await loadSnippets();
-    const existingIds = new Set(existing.map(s => s.id));
-    const newOnes = incoming.filter(s => !existingIds.has(s.id));
-    final = [...existing, ...newOnes];
-    const skipped = incoming.length - newOnes.length;
-    if (skipped > 0) showToast(`Imported ${newOnes.length}, skipped ${skipped} duplicate${skipped > 1 ? 's' : ''}`);
-    else showToast(`Imported ${newOnes.length} snippet${newOnes.length > 1 ? 's' : ''}`);
-  }
+  const existing = await loadSnippets();
+  // Track all names (existing + already-processed imports) to detect collisions
+  const takenNames = new Set(existing.map(s => s.name.toLowerCase()));
 
-  await saveSnippets(final);
+  // Always generate fresh IDs; rename collisions with a numeric suffix
+  const incoming = selected.map(s => {
+    let name = s.name;
+    if (takenNames.has(name.toLowerCase())) {
+      let counter = 2;
+      while (takenNames.has(`${name} (${counter})`.toLowerCase())) counter++;
+      name = `${name} (${counter})`;
+    }
+    takenNames.add(name.toLowerCase());
+    return {
+      ...s,
+      id: uid(),
+      name,
+      variables: s.variables || [],
+      createdAt: s.createdAt || Date.now()
+    };
+  });
+
+  await saveSnippets([...existing, ...incoming]);
   closeImportModal();
   renderList();
+  showToast(`Imported ${incoming.length} snippet${incoming.length > 1 ? 's' : ''}`);
 }
 
 function closeImportModal() {
