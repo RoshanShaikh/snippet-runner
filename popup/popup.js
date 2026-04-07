@@ -96,8 +96,8 @@ async function renderList(query = '') {
     else focusedSnippetId = null;
   }
 
-  // Auto-focus first item when search is open and nothing is focused
-  if (!focusedSnippetId && !document.getElementById('search-bar').classList.contains('hidden')) {
+  // Auto-focus first item when search has content and nothing is focused
+  if (!focusedSnippetId) {
     const first = list.querySelector('.snippet-item');
     if (first) setFocusedItem(first);
   }
@@ -230,12 +230,8 @@ function openRunModal(snippet) {
 function closeRunModal() {
   document.getElementById('run-modal').classList.add('hidden');
   activeSnippet = null;
-  // Return focus to search input so arrow keys keep working
-  const searchInput = document.getElementById('search-input');
-  const searchBar   = document.getElementById('search-bar');
-  if (searchInput && !searchBar.classList.contains('hidden')) {
-    searchInput.focus();
-  }
+  // Return focus to search input
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
 }
 
 // ─── EXECUTE ───────────────────────────────────────────────────────────────────
@@ -407,12 +403,15 @@ function doExport() {
     URL.revokeObjectURL(url);
     document.getElementById('export-modal').classList.add('hidden');
     showToast(`Exported ${selected.length} snippet${selected.length > 1 ? 's' : ''}`);
+    // Return focus to search input
+    setTimeout(() => document.getElementById('search-input')?.focus(), 50);
   });
 }
 
 function closeExportModal() {
-  console.log("Closing Export");
   document.getElementById('export-modal').classList.add('hidden');
+  // Return focus to search input
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
 }
 
 // ─── IMPORT ───────────────────────────────────────────────────────────────────
@@ -520,12 +519,16 @@ async function confirmImport() {
   closeImportModal();
   renderList();
   showToast(`Imported ${incoming.length} snippet${incoming.length > 1 ? 's' : ''}`);
+  // Return focus to search input
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
 }
 
 function closeImportModal() {
   document.getElementById('import-modal').classList.add('hidden');
   document.getElementById('import-options').classList.add('hidden');
   pendingImport = null;
+  // Return focus to search input
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
 }
 
 // ─── TOOLTIP POSITIONING ──────────────────────────────────────────────────────
@@ -555,6 +558,8 @@ function openMultilineOverlay(label, hint, currentValue, onApply) {
 function closeMultilineOverlay() {
   document.getElementById('multiline-overlay').classList.add('hidden');
   _multilineCallback = null;
+  // Return focus to search input
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
 }
 
 // ─── Wire-up ───────────────────────────────────────────────────────────────────
@@ -619,45 +624,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   });
 
-  // Search — toggle bar on button click, close on clear/Escape
-  const searchBar   = document.getElementById('search-bar');
+  // Search input — always visible, auto-focused on popup open
   const searchInput = document.getElementById('search-input');
-  const btnSearch   = document.getElementById('btn-search');
-  const btnImport   = document.getElementById('btn-import');
-  const btnExport   = document.getElementById('btn-export');
-  const btnNew      = document.getElementById('btn-new');
 
-  function openSearch() {
-    searchBar.classList.remove('hidden');
-    btnSearch.classList.add('active');
-    btnImport.classList.add('hidden');
-    btnExport.classList.add('hidden');
-    btnNew.classList.add('hidden');
-    setTimeout(() => searchInput.focus(), 50);
-    btnSearch.innerHTML = `
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-        <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    `
-  }
-  function closeSearch() {
-    searchBar.classList.add('hidden');
-    btnSearch.classList.remove('active');
-    btnImport.classList.remove('hidden');
-    btnExport.classList.remove('hidden');
-    btnNew.classList.remove('hidden');
-    searchInput.value = '';
-    setFocusedItem(null);
-    btnSearch.innerHTML = `
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    `
-    renderList();
-  }
+  // Auto-focus search input on popup open
+  setTimeout(() => searchInput.focus(), 50);
 
-  // Global keydown — Ctrl+Enter, Ctrl+F, Alt+Shift+F
+  // Global keydown — Ctrl+Enter for execution
   document.addEventListener('keydown', e => {
     // Ctrl+Enter: execute if run modal is open, otherwise open run modal for focused/first snippet
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -686,19 +659,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return;
     }
-
-    // Ctrl+F / Cmd+F → open/focus search
-    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyF') {
-      e.preventDefault();
-      if (searchBar.classList.contains('hidden')) openSearch();
-      else searchInput.focus();
-      return;
-    }
-
-  });
-
-  btnSearch.addEventListener('click', () => {
-    searchBar.classList.contains('hidden') ? openSearch() : closeSearch();
   });
 
   searchInput.addEventListener('input', () => {
@@ -707,12 +667,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   searchInput.addEventListener('keydown', e => {
-    if (e.key === "Escape") {
-        e.preventDefault();
-        closeSearch();
-        return;
-    }
-
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       const items = [...document.querySelectorAll('.snippet-item')];
@@ -727,25 +681,12 @@ document.addEventListener('DOMContentLoaded', () => {
         else setFocusedItem(items[idx - 1]);
       }
     }
+    if (e.key === "Escape" && searchInput.value) {
+        searchInput.value = "";
+        focusedSnippetId = null;
+        renderList();
+    }
   });
-
-  // Check if popup was opened via Alt+Shift+F (search mode)
-  if (chrome.storage?.session) {
-    chrome.storage.session.get('openInSearchMode', (data) => {
-      if (data.openInSearchMode) {
-        chrome.storage.session.remove('openInSearchMode');
-        openSearch();
-      }
-    });
-
-    // Also listen for the flag being set while the popup is already open
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === 'session' && changes.openInSearchMode?.newValue) {
-        chrome.storage.session.remove('openInSearchMode');
-        openSearch();
-      }
-    });
-  }
 
   renderList();
 });
