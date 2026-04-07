@@ -16,6 +16,23 @@ function showToast(msg, type = 'success') {
 
 // ─── LIST ──────────────────────────────────────────────────────────────────────
 
+let focusedSnippetId = null;
+
+function getFocusedItem() {
+  return document.querySelector('.snippet-item.focused');
+}
+
+function setFocusedItem(li) {
+  document.querySelectorAll('.snippet-item.focused').forEach(el => el.classList.remove('focused'));
+  if (li) {
+    li.classList.add('focused');
+    focusedSnippetId = li.dataset.id;
+    li.scrollIntoView({ block: 'nearest' });
+  } else {
+    focusedSnippetId = null;
+  }
+}
+
 async function renderList(query = '') {
   const snippets = await loadSnippets();
   const list  = document.getElementById('snippet-list');
@@ -71,6 +88,19 @@ async function renderList(query = '') {
 
     list.appendChild(li);
   });
+
+  // Restore focused item if it still exists, otherwise clear
+  if (focusedSnippetId) {
+    const restored = list.querySelector(`.snippet-item[data-id="${focusedSnippetId}"]`);
+    if (restored) restored.classList.add('focused');
+    else focusedSnippetId = null;
+  }
+
+  // Auto-focus first item when search has content and nothing is focused
+  if (!focusedSnippetId) {
+    const first = list.querySelector('.snippet-item');
+    if (first) setFocusedItem(first);
+  }
 }
 
 function confirmDelete(li, snippet) {
@@ -200,6 +230,8 @@ function openRunModal(snippet) {
 function closeRunModal() {
   document.getElementById('run-modal').classList.add('hidden');
   activeSnippet = null;
+  // Return focus to search input
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
 }
 
 // ─── EXECUTE ───────────────────────────────────────────────────────────────────
@@ -359,7 +391,9 @@ function doExport() {
 
   loadSnippets().then(snippets => {
     const selected = snippets.filter(s => selectedIds.has(s.id));
-    const payload = { version: 1, exportedAt: new Date().toISOString(), snippets: selected };
+    // Strip IDs before exporting — new IDs will be generated on import
+    const exportable = selected.map(({ id: _id, ...rest }) => rest);
+    const payload = { version: 1, exportedAt: new Date().toISOString(), snippets: exportable };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
@@ -369,11 +403,15 @@ function doExport() {
     URL.revokeObjectURL(url);
     document.getElementById('export-modal').classList.add('hidden');
     showToast(`Exported ${selected.length} snippet${selected.length > 1 ? 's' : ''}`);
+    // Return focus to search input
+    setTimeout(() => document.getElementById('search-input')?.focus(), 50);
   });
 }
 
 function closeExportModal() {
   document.getElementById('export-modal').classList.add('hidden');
+  // Return focus to search input
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
 }
 
 // ─── IMPORT ───────────────────────────────────────────────────────────────────
@@ -450,47 +488,47 @@ async function confirmImport() {
   if (!pendingImport) return;
 
   const checklist = document.getElementById('import-checklist');
-  const selectedIds = new Set(
-    [...checklist.querySelectorAll('.checklist-cb:checked')].map(cb => cb.dataset.id)
-  );
-
-  if (selectedIds.size === 0) { showToast('Select at least one snippet', 'error'); return; }
-
-  // Map selected by index since ids may be missing
   const checkboxes = [...checklist.querySelectorAll('.checklist-cb')];
   const selected = pendingImport.filter((_, i) => checkboxes[i]?.checked);
 
-  const mode = document.querySelector('input[name="import-mode"]:checked').value;
-  const incoming = selected.map(s => ({
-    ...s,
-    id: s.id || uid(),
-    variables: s.variables || [],
-    createdAt: s.createdAt || Date.now()
-  }));
+  if (selected.length === 0) { showToast('Select at least one snippet', 'error'); return; }
 
-  let final;
-  if (mode === 'overwrite') {
-    final = incoming;
-    showToast(`Replaced with ${final.length} snippet${final.length > 1 ? 's' : ''}`);
-  } else {
-    const existing = await loadSnippets();
-    const existingIds = new Set(existing.map(s => s.id));
-    const newOnes = incoming.filter(s => !existingIds.has(s.id));
-    final = [...existing, ...newOnes];
-    const skipped = incoming.length - newOnes.length;
-    if (skipped > 0) showToast(`Imported ${newOnes.length}, skipped ${skipped} duplicate${skipped > 1 ? 's' : ''}`);
-    else showToast(`Imported ${newOnes.length} snippet${newOnes.length > 1 ? 's' : ''}`);
-  }
+  const existing = await loadSnippets();
+  // Track all names (existing + already-processed imports) to detect collisions
+  const takenNames = new Set(existing.map(s => s.name.toLowerCase()));
 
-  await saveSnippets(final);
+  // Always generate fresh IDs; rename collisions with a numeric suffix
+  const incoming = selected.map(s => {
+    let name = s.name;
+    if (takenNames.has(name.toLowerCase())) {
+      let counter = 2;
+      while (takenNames.has(`${name} (${counter})`.toLowerCase())) counter++;
+      name = `${name} (${counter})`;
+    }
+    takenNames.add(name.toLowerCase());
+    return {
+      ...s,
+      id: uid(),
+      name,
+      variables: s.variables || [],
+      createdAt: s.createdAt || Date.now()
+    };
+  });
+
+  await saveSnippets([...existing, ...incoming]);
   closeImportModal();
   renderList();
+  showToast(`Imported ${incoming.length} snippet${incoming.length > 1 ? 's' : ''}`);
+  // Return focus to search input
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
 }
 
 function closeImportModal() {
   document.getElementById('import-modal').classList.add('hidden');
   document.getElementById('import-options').classList.add('hidden');
   pendingImport = null;
+  // Return focus to search input
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
 }
 
 // ─── TOOLTIP POSITIONING ──────────────────────────────────────────────────────
@@ -520,6 +558,8 @@ function openMultilineOverlay(label, hint, currentValue, onApply) {
 function closeMultilineOverlay() {
   document.getElementById('multiline-overlay').classList.add('hidden');
   _multilineCallback = null;
+  // Return focus to search input
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
 }
 
 // ─── Wire-up ───────────────────────────────────────────────────────────────────
@@ -538,14 +578,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) closeMultilineOverlay();
   });
   document.getElementById('multiline-overlay').addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeMultilineOverlay();
+    if (e.key === "Escape") {
+        e.preventDefault();
+        closeMultilineOverlay();
+    }
   });
 
   document.getElementById('btn-export').addEventListener('click', exportSnippets);
   document.getElementById('export-cancel').addEventListener('click', closeExportModal);
+  
   document.getElementById('export-confirm').addEventListener('click', doExport);
-  document.getElementById('export-modal').addEventListener('click', e => {
-    if (e.target === e.currentTarget) closeExportModal();
+  document.getElementById("export-modal").addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) closeExportModal();
+  });
+  document.getElementById('export-modal').addEventListener('keydown', e => {
+      if (e.key === "Escape") {
+          e.preventDefault();
+          closeExportModal();
+      }
   });
 
   document.getElementById('btn-import').addEventListener('click', openImportPicker);
@@ -555,6 +605,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('import-modal').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeImportModal();
   });
+  document.getElementById('import-modal').addEventListener('keydown', e => {
+      if (e.key === "Escape") {
+          e.preventDefault();
+          closeImportModal();
+      }
+  });
 
   document.getElementById('modal-cancel').addEventListener('click', closeRunModal);
   document.getElementById('modal-run').addEventListener('click', executeSnippet);
@@ -562,57 +618,74 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) closeRunModal();
   });
   document.getElementById('run-modal').addEventListener('keydown', e => {
-    if (e.key === 'Enter') executeSnippet();
-    if (e.key === 'Escape') closeRunModal();
+      if (e.key === "Escape") {
+          e.preventDefault();
+          closeRunModal();
+      }
   });
 
-  // Search — toggle bar on button click, close on clear/Escape
-  const searchBar   = document.getElementById('search-bar');
+  // Search input — always visible, auto-focused on popup open
   const searchInput = document.getElementById('search-input');
-  const btnSearch   = document.getElementById('btn-search');
-  const btnImport   = document.getElementById('btn-import');
-  const btnExport   = document.getElementById('btn-export');
-  const btnNew   = document.getElementById('btn-new');
 
-  function openSearch() {
-    searchBar.classList.remove('hidden');
-    btnSearch.classList.add('active');
-    btnImport.classList.add('hidden');
-    btnExport.classList.add('hidden');
-    btnNew.classList.add('hidden');
-    setTimeout(() => searchInput.focus(), 50);
-    btnSearch.innerHTML = `
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-        <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    `
-  }
-  function closeSearch() {
-    searchBar.classList.add('hidden');
-    btnSearch.classList.remove('active');
-    btnImport.classList.remove('hidden');
-    btnExport.classList.remove('hidden');
-    btnNew.classList.remove('hidden');
-    searchInput.value = '';
-    btnSearch.innerHTML = `
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    `
-    renderList();
-  }
+  // Auto-focus search input on popup open
+  setTimeout(() => searchInput.focus(), 50);
 
-  btnSearch.addEventListener('click', () => {
-    searchBar.classList.contains('hidden') ? openSearch() : closeSearch();
+  // Global keydown — Ctrl+Enter for execution
+  document.addEventListener('keydown', e => {
+    // Ctrl+Enter: execute if run modal is open, otherwise open run modal for focused/first snippet
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (!document.getElementById('run-modal').classList.contains('hidden')) {
+        // Run modal is open — execute the snippet
+        executeSnippet();
+      } else {
+        // Run modal is closed — open it for the focused/first snippet
+        const target = getFocusedItem() || document.querySelector('.snippet-item');
+        if (target) target.querySelector('[data-action="run"]')?.click();
+      }
+      return;
+    }
+
+    if(e.key === "Escape"){
+      e.preventDefault();
+      if (!document.getElementById('run-modal').classList.contains('hidden')) {
+        closeRunModal();
+      }
+      else if (!document.getElementById('export-modal').classList.contains('hidden')) {
+        closeExportModal();
+      }
+      else if (!document.getElementById('import-modal').classList.contains('hidden')) {
+        closeImportModal();
+      }
+      return;
+    }
   });
 
   searchInput.addEventListener('input', () => {
+    focusedSnippetId = null; // let renderList auto-focus the new first item
     renderList(searchInput.value);
   });
 
   searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeSearch();
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const items = [...document.querySelectorAll('.snippet-item')];
+      if (!items.length) return;
+      const current = getFocusedItem();
+      const idx = current ? items.indexOf(current) : -1;
+      if (e.key === 'ArrowDown') {
+        const next = items[idx + 1];
+        if (next) setFocusedItem(next);
+      } else {
+        if (idx <= 0) setFocusedItem(null);
+        else setFocusedItem(items[idx - 1]);
+      }
+    }
+    if (e.key === "Escape" && searchInput.value) {
+        searchInput.value = "";
+        focusedSnippetId = null;
+        renderList();
+    }
   });
 
   renderList();

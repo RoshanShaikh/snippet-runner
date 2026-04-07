@@ -16,18 +16,11 @@
         <span class="logo-icon">⚡</span>
         <span class="logo-text">SnippetRunner</span>
       </div>
-      <!-- Search input — shown in place of logo when active -->
-      <div id="search-bar" class="search-bar hidden">
-        <input id="search-input" class="search-input" type="text" placeholder="Search snippets…" autocomplete="off" spellcheck="false"/>
+      <!-- Search input — always visible -->
+      <div id="search-bar" class="search-bar">
+        <input id="search-input" class="search-input" type="text" placeholder="Search" autocomplete="off" spellcheck="false"/>
       </div>
       <div class="header-right">
-        <!-- Search -->
-        <button id="btn-search" class="btn-icon" title="Search Snippets">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-            <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </button>
         <!-- Export: upload/send out -->
         <button id="btn-export" class="btn-icon" title="Export Snippets">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -52,20 +45,6 @@
     </header>
     <!-- hidden file input for import -->
     <input type="file" id="import-file-input" accept=".json" style="display:none"/>
-
-    <!-- SEARCH BAR -->
-    <div class="search-bar">
-      <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
-        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-      <input id="search-input" class="search-input" type="text" placeholder="Search snippets…" autocomplete="off" spellcheck="false"/>
-      <button id="search-clear" class="search-clear hidden" title="Clear">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-          <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-      </button>
-    </div>
 
     <div id="snippet-list-empty" class="empty-state hidden">
       <div class="empty-icon">📭</div>
@@ -119,22 +98,6 @@
           <span id="import-selected-count" class="selected-count"></span>
         </div>
         <div id="import-checklist" class="snippet-checklist"></div>
-        <div class="import-mode-row">
-          <label class="import-radio">
-            <input type="radio" name="import-mode" value="merge" checked/>
-            <div class="import-radio-body">
-              <strong>Merge</strong>
-              <span>Add selected, keep existing</span>
-            </div>
-          </label>
-          <label class="import-radio">
-            <input type="radio" name="import-mode" value="overwrite"/>
-            <div class="import-radio-body">
-              <strong>Overwrite</strong>
-              <span>Replace all existing snippets</span>
-            </div>
-          </label>
-        </div>
       </div>
       <div class="modal-actions">
         <button id="import-cancel" class="btn-ghost">Cancel</button>
