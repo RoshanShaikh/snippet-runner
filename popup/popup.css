@@ -140,6 +140,11 @@ header {
   position: relative; /* tooltip anchor */
 }
 .snippet-item:hover { border-color: var(--border2); }
+.snippet-item.focused {
+  border-color: var(--accent);
+  background: rgba(127,255,111,0.04);
+  outline: none;
+}
 
 .snippet-info { flex: 1; min-width: 0; }
 .snippet-name {

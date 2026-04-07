@@ -16,6 +16,23 @@ function showToast(msg, type = 'success') {
 
 // ─── LIST ──────────────────────────────────────────────────────────────────────
 
+let focusedSnippetId = null;
+
+function getFocusedItem() {
+  return document.querySelector('.snippet-item.focused');
+}
+
+function setFocusedItem(li) {
+  document.querySelectorAll('.snippet-item.focused').forEach(el => el.classList.remove('focused'));
+  if (li) {
+    li.classList.add('focused');
+    focusedSnippetId = li.dataset.id;
+    li.scrollIntoView({ block: 'nearest' });
+  } else {
+    focusedSnippetId = null;
+  }
+}
+
 async function renderList(query = '') {
   const snippets = await loadSnippets();
   const list  = document.getElementById('snippet-list');
@@ -71,6 +88,19 @@ async function renderList(query = '') {
 
     list.appendChild(li);
   });
+
+  // Restore focused item if it still exists, otherwise clear
+  if (focusedSnippetId) {
+    const restored = list.querySelector(`.snippet-item[data-id="${focusedSnippetId}"]`);
+    if (restored) restored.classList.add('focused');
+    else focusedSnippetId = null;
+  }
+
+  // Auto-focus first item when search is open and nothing is focused
+  if (!focusedSnippetId && !document.getElementById('search-bar').classList.contains('hidden')) {
+    const first = list.querySelector('.snippet-item');
+    if (first) setFocusedItem(first);
+  }
 }
 
 function confirmDelete(li, snippet) {
@@ -200,6 +230,12 @@ function openRunModal(snippet) {
 function closeRunModal() {
   document.getElementById('run-modal').classList.add('hidden');
   activeSnippet = null;
+  // Return focus to search input so arrow keys keep working
+  const searchInput = document.getElementById('search-input');
+  const searchBar   = document.getElementById('search-bar');
+  if (searchInput && !searchBar.classList.contains('hidden')) {
+    searchInput.focus();
+  }
 }
 
 // ─── EXECUTE ───────────────────────────────────────────────────────────────────
@@ -375,6 +411,7 @@ function doExport() {
 }
 
 function closeExportModal() {
+  console.log("Closing Export");
   document.getElementById('export-modal').classList.add('hidden');
 }
 
@@ -536,14 +573,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) closeMultilineOverlay();
   });
   document.getElementById('multiline-overlay').addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeMultilineOverlay();
+    if (e.key === "Escape") {
+        e.preventDefault();
+        closeMultilineOverlay();
+    }
   });
 
   document.getElementById('btn-export').addEventListener('click', exportSnippets);
   document.getElementById('export-cancel').addEventListener('click', closeExportModal);
+  
   document.getElementById('export-confirm').addEventListener('click', doExport);
-  document.getElementById('export-modal').addEventListener('click', e => {
-    if (e.target === e.currentTarget) closeExportModal();
+  document.getElementById("export-modal").addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) closeExportModal();
+  });
+  document.getElementById('export-modal').addEventListener('keydown', e => {
+      if (e.key === "Escape") {
+          e.preventDefault();
+          closeExportModal();
+      }
   });
 
   document.getElementById('btn-import').addEventListener('click', openImportPicker);
@@ -553,6 +600,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('import-modal').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeImportModal();
   });
+  document.getElementById('import-modal').addEventListener('keydown', e => {
+      if (e.key === "Escape") {
+          e.preventDefault();
+          closeImportModal();
+      }
+  });
 
   document.getElementById('modal-cancel').addEventListener('click', closeRunModal);
   document.getElementById('modal-run').addEventListener('click', executeSnippet);
@@ -560,8 +613,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) closeRunModal();
   });
   document.getElementById('run-modal').addEventListener('keydown', e => {
-    if (e.key === 'Enter') executeSnippet();
-    if (e.key === 'Escape') closeRunModal();
+      if (e.key === "Escape") {
+          e.preventDefault();
+          closeRunModal();
+      }
   });
 
   // Search — toggle bar on button click, close on clear/Escape
@@ -570,7 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSearch   = document.getElementById('btn-search');
   const btnImport   = document.getElementById('btn-import');
   const btnExport   = document.getElementById('btn-export');
-  const btnNew   = document.getElementById('btn-new');
+  const btnNew      = document.getElementById('btn-new');
 
   function openSearch() {
     searchBar.classList.remove('hidden');
@@ -592,6 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnExport.classList.remove('hidden');
     btnNew.classList.remove('hidden');
     searchInput.value = '';
+    setFocusedItem(null);
     btnSearch.innerHTML = `
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
         <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
@@ -601,17 +657,95 @@ document.addEventListener('DOMContentLoaded', () => {
     renderList();
   }
 
+  // Global keydown — Ctrl+Enter, Ctrl+F, Alt+Shift+F
+  document.addEventListener('keydown', e => {
+    // Ctrl+Enter: execute if run modal is open, otherwise open run modal for focused/first snippet
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (!document.getElementById('run-modal').classList.contains('hidden')) {
+        // Run modal is open — execute the snippet
+        executeSnippet();
+      } else {
+        // Run modal is closed — open it for the focused/first snippet
+        const target = getFocusedItem() || document.querySelector('.snippet-item');
+        if (target) target.querySelector('[data-action="run"]')?.click();
+      }
+      return;
+    }
+
+    if(e.key === "Escape"){
+      e.preventDefault();
+      if (!document.getElementById('run-modal').classList.contains('hidden')) {
+        closeRunModal();
+      }
+      else if (!document.getElementById('export-modal').classList.contains('hidden')) {
+        closeExportModal();
+      }
+      else if (!document.getElementById('import-modal').classList.contains('hidden')) {
+        closeImportModal();
+      }
+      return;
+    }
+
+    // Ctrl+F / Cmd+F → open/focus search
+    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyF') {
+      e.preventDefault();
+      if (searchBar.classList.contains('hidden')) openSearch();
+      else searchInput.focus();
+      return;
+    }
+
+  });
+
   btnSearch.addEventListener('click', () => {
     searchBar.classList.contains('hidden') ? openSearch() : closeSearch();
   });
 
   searchInput.addEventListener('input', () => {
+    focusedSnippetId = null; // let renderList auto-focus the new first item
     renderList(searchInput.value);
   });
 
   searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeSearch();
+    if (e.key === "Escape") {
+        e.preventDefault();
+        closeSearch();
+        return;
+    }
+
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const items = [...document.querySelectorAll('.snippet-item')];
+      if (!items.length) return;
+      const current = getFocusedItem();
+      const idx = current ? items.indexOf(current) : -1;
+      if (e.key === 'ArrowDown') {
+        const next = items[idx + 1];
+        if (next) setFocusedItem(next);
+      } else {
+        if (idx <= 0) setFocusedItem(null);
+        else setFocusedItem(items[idx - 1]);
+      }
+    }
   });
+
+  // Check if popup was opened via Alt+Shift+F (search mode)
+  if (chrome.storage?.session) {
+    chrome.storage.session.get('openInSearchMode', (data) => {
+      if (data.openInSearchMode) {
+        chrome.storage.session.remove('openInSearchMode');
+        openSearch();
+      }
+    });
+
+    // Also listen for the flag being set while the popup is already open
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'session' && changes.openInSearchMode?.newValue) {
+        chrome.storage.session.remove('openInSearchMode');
+        openSearch();
+      }
+    });
+  }
 
   renderList();
 });

@@ -8,6 +8,19 @@
     "scripting",
     "storage"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "Open SnippetRunner"
+    },
+    "open-search": {
+      "suggested_key": { "default": "Alt+Shift+F" },
+      "description": "Open SnippetRunner in search mode"
+    }
+  },
   "action": {
     "default_popup": "popup/popup.html",
     "default_title": "SnippetRunner"
