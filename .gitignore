@@ -1,0 +1,50 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build and distribution
+dist/
+build/
+out/
+*.zip
+*.crx
+*.pem
+
+# Chrome-specific metadata and temporary files
+_metadata/
+_debug/
+.crx
+
+# Environment and sensitive data
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.pem
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cursor
+.cursor/
+# But if you want to keep rules, uncomment next line:
+# !.cursor/rules/
+# .cursorrules
+
+# Graphify / Indexing
+graphify-out/
