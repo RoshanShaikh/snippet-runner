@@ -138,6 +138,14 @@ function openEditorPage(snippetId = null) {
   window.close();
 }
 
+// ─── OPEN HISTORY PAGE ──────────────────────────────────────────────────────────
+
+function openHistoryPage(resultId = null) {
+  const url = chrome.runtime.getURL('results/results.html') + (resultId ? `?id=${resultId}` : '')
+  chrome.tabs.create({ url });
+  window.close();
+}
+
 // ─── RUN MODAL ─────────────────────────────────────────────────────────────────
 
 let activeSnippet = null;
@@ -332,7 +340,7 @@ async function executeSnippet() {
     overlay.classList.add('hidden');
 
     // Open results tab with the specific result ID
-    chrome.tabs.create({ url: chrome.runtime.getURL('results/results.html') + '?id=' + resultId });
+    openHistoryPage(resultId)
 
     setTimeout(() => window.close(), 300);
 
@@ -566,6 +574,7 @@ function closeMultilineOverlay() {
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-new').addEventListener('click', () => openEditorPage());
+  document.getElementById('btn-history').addEventListener('click', () => openHistoryPage());
 
   // Multiline overlay
   document.getElementById('multiline-confirm').addEventListener('click', () => {

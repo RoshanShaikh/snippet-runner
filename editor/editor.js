@@ -260,7 +260,6 @@ async function saveEditor() {
 
   await saveSnippets(snippets);
   showToast(editingId ? 'Snippet updated!' : 'Snippet saved!');
-  setTimeout(() => window.close(), 800);
 }
 
 // ─── Toast ─────────────────────────────────────────────────────────────────────
