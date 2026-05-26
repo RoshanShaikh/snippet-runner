@@ -118,18 +118,7 @@ function render(main, result) {
   const statusIcon  = hasError ? '✕' : '✓';
   const ranAt       = new Date(result.ranAt);
 
-  let logsHtml;
-  if (!result.logs || result.logs.length === 0) {
-    logsHtml = `<div class="log-empty">No console output — snippet ran silently.</div>`;
-  } else {
-    logsHtml = result.logs.map((entry, i) => `
-      <div class="log-row log-${escapeHtml(entry.level)}">
-        <span class="log-index">${i + 1}</span>
-        <span class="log-level">${escapeHtml(entry.level)}</span>
-        <pre class="log-text">${escapeHtml(entry.text)}</pre>
-      </div>
-    `).join('');
-  }
+  // logsHtml is built as DOM nodes after innerHTML is set (see below)
 
   const logCountHtml = result.logs && result.logs.length > 0
     ? `<span class="log-count">${result.logs.length} line${result.logs.length > 1 ? 's' : ''}</span>`
@@ -181,11 +170,76 @@ function render(main, result) {
         </div>
       </div>
       <div class="section-body"><div class="section-body-inner">
-        <div class="logs-block">${logsHtml}</div>
+        <div class="logs-block" id="logs-block"></div>
       </div></div>
     </section>
   `;
 
+  // ── Build log rows as DOM nodes (enables per-line collapse + copy) ──────────
+  const logsBlock = document.getElementById('logs-block');
+  if (!result.logs || result.logs.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'log-empty';
+    empty.textContent = 'No console output — snippet ran silently.';
+    logsBlock.appendChild(empty);
+  } else {
+    result.logs.forEach((entry, i) => {
+      const row = document.createElement('div');
+      row.className = `log-row log-${entry.level}`;
+
+      // index
+      const idx = document.createElement('span');
+      idx.className = 'log-index';
+      idx.textContent = i + 1;
+
+      // level badge
+      const lvl = document.createElement('span');
+      lvl.className = 'log-level';
+      lvl.textContent = entry.level;
+
+      // chevron (inserted before pre only if collapsible, determined after render)
+      const chevron = document.createElement('span');
+      chevron.className = 'log-chevron';
+
+      // text
+      const pre = document.createElement('pre');
+      pre.className = 'log-text';
+      pre.textContent = entry.text;
+
+      // per-line copy button
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'btn-xs log-copy-btn';
+      copyBtn.textContent = 'Copy';
+      copyBtn.title = 'Copy this line';
+      copyBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(entry.text).then(() => {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+        });
+      });
+
+      row.appendChild(idx);
+      row.appendChild(lvl);
+      row.appendChild(pre);
+      row.appendChild(copyBtn);
+      logsBlock.appendChild(row);
+
+      // Treat a row as collapsible if it has newlines OR is long enough to wrap.
+      // ~100 chars is a reliable proxy for wrapping at typical popup widths.
+      const isOverflowing = entry.text.includes('\n') || entry.text.length > 200;
+      if (isOverflowing) {
+        row.classList.add('log-collapsible', 'collapsed');
+        row.insertBefore(chevron, pre);
+        row.addEventListener('click', e => {
+          if (e.target.closest('.log-copy-btn')) return;
+          row.classList.toggle('collapsed');
+        });
+      }
+    });
+  }
+
+  // ── Section collapse/expand ─────────────────────────────────────────────────
   main.querySelectorAll('.section-header').forEach(header => {
     header.addEventListener('click', e => {
       if (e.target.closest('button')) return;

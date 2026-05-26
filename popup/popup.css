@@ -335,6 +335,7 @@ header {
   border-radius: var(--radius);
   overflow: hidden;
   font-size: 12px;
+  table-layout: fixed;
 }
 .modal-vars-table thead tr { background: var(--surface2); border-bottom: 1px solid var(--border); }
 .modal-vars-table th {
@@ -346,7 +347,8 @@ header {
   color: var(--muted);
   text-align: left;
 }
-.modal-vars-table th:first-child { width: 40%; }
+.modal-vars-table th:first-child { width: 130px; }
+.modal-vars-table th:last-child { width: auto; }
 .modal-vars-table tbody tr { border-bottom: 1px solid var(--border); }
 .modal-vars-table tbody tr:last-child { border-bottom: none; }
 .modal-vars-table tbody tr.has-hint,
@@ -618,6 +620,8 @@ header {
   padding: 4px 7px;
   border: 1px solid transparent;
   border-radius: var(--radius);
+  max-width: 100%;
+  overflow: hidden;
 }
 .multiline-preview {
   flex: 1;
@@ -628,6 +632,7 @@ header {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-word;
 }
 .multiline-preview.has-value { color: var(--text); font-style: normal; }
 .btn-edit-multiline {
@@ -641,6 +646,7 @@ header {
   cursor: pointer;
   white-space: nowrap;
   transition: border-color 0.15s, background 0.15s;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  flex-grow: 0;
 }
 .btn-edit-multiline:hover { border-color: var(--accent2); background: rgba(79,201,245,0.08); }
