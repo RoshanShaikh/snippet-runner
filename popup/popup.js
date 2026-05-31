@@ -274,20 +274,29 @@ async function executeSnippet() {
         const _warn  = window.console.warn.bind(console);
         const _error = window.console.error.bind(console);
 
+        function serializeValue(a) {
+          try {
+            if (a === null) return 'null';
+            if (a === undefined) return 'undefined';
+            return typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a);
+          } catch (_e) { return '[unserializable]'; }
+        }
+
         function serialize(args) {
-          return args.map(a => {
-            try {
-              if (a === null) return 'null';
-              if (a === undefined) return 'undefined';
-              return typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a);
-            } catch (_e) { return '[unserializable]'; }
-          }).join(' ');
+          if (args.length > 1) {
+            // First arg is the title, remaining args are the copyable body
+            return {
+              title: serializeValue(args[0]),
+              body: args.slice(1).map(serializeValue).join(' '),
+            };
+          }
+          return { title: null, body: serializeValue(args[0]) };
         }
 
         // Patch window.console — script tags read from window.console
-        window.console.log   = (...a) => { captured.push({ level: 'log',   text: serialize(a) }); _log(...a);   };
-        window.console.warn  = (...a) => { captured.push({ level: 'warn',  text: serialize(a) }); _warn(...a);  };
-        window.console.error = (...a) => { captured.push({ level: 'error', text: serialize(a) }); _error(...a); };
+        window.console.log   = (...a) => { captured.push({ level: 'log',   ...serialize(a) }); _log(...a);   };
+        window.console.warn  = (...a) => { captured.push({ level: 'warn',  ...serialize(a) }); _warn(...a);  };
+        window.console.error = (...a) => { captured.push({ level: 'error', ...serialize(a) }); _error(...a); };
 
         // Log the group header using original _log so it isn't captured
         window.console.groupCollapsed(

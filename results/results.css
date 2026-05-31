@@ -121,15 +121,11 @@ html, body {
 .section-header:hover .collapse-hint { opacity: 1; }
 
 .chevron {
-  width: 18px; height: 18px;
-  border-radius: 4px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
+  width: 14px; height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 0.15s;
 }
 .chevron::after {
   content: '';
@@ -141,7 +137,6 @@ html, body {
   transition: transform 0.2s ease;
 }
 .collapsed .chevron::after { transform: rotate(-45deg) translate(-1px, 1px); }
-.section-header:hover .chevron { background: var(--border); }
 
 /* ── COLLAPSIBLE BODY ── */
 .section-body {
@@ -151,6 +146,7 @@ html, body {
   overflow: hidden;
 }
 .collapsed .section-body { grid-template-rows: 0fr; }
+.collapsed .section-body-inner { border: none; }
 .section-body-inner {
   min-height: 0;
   overflow: hidden;
@@ -205,33 +201,35 @@ html, body {
 
 .log-row {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 10px 14px;
+  flex-direction: column;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
   line-height: 1.6;
-  position: relative;
 }
 .log-row:last-child { border-bottom: none; }
 .log-row.log-warn  { background: rgba(245,166,35,0.06); }
 .log-row.log-error { background: rgba(255,95,95,0.07); }
 
-/* Per-line copy button — hidden until hover */
-.log-copy-btn {
-  opacity: 0.7;
-  transition: opacity 0.15s;
-  flex-shrink: 0;
-  align-self: flex-start;
-  margin-top: 1px;
+/* Header line — always visible, fixed layout */
+.log-row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
 }
 
-/* Chevron for collapsible multi-line rows */
+/* Body — full width, shown/hidden via collapse */
+.log-row-body {
+  padding: 0 14px 10px 14px;
+}
+.log-collapsible.collapsed .log-row-body { display: none; }
+.log-collapsible:not(.collapsed) .log-row-body { display: block; }
+
+/* Chevron — always present to keep columns aligned */
 .log-chevron {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  margin-top: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -245,6 +243,7 @@ html, body {
   transform: rotate(45deg) translate(-1px, -1px);
   transition: transform 0.2s ease;
 }
+.log-chevron-hidden::after { visibility: hidden; }
 .log-collapsible { cursor: pointer; }
 .log-collapsible:hover { background: var(--surface2); }
 .log-row.log-warn.log-collapsible:hover  { background: rgba(245,166,35,0.10); }
@@ -253,56 +252,76 @@ html, body {
   transform: rotate(-45deg) translate(-1px, 1px);
 }
 
-/* Collapse the log text for multi-line entries */
-.log-collapsible .log-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  transition: none;
-}
-.log-collapsible.collapsed .log-text {
-  -webkit-line-clamp: 1;
-  white-space: pre;
-  text-overflow: ellipsis;
-}
-.log-collapsible:not(.collapsed) .log-text {
-  -webkit-line-clamp: unset;
-  display: block;
-}
-
 .log-index {
   font-size: 11px;
   color: var(--muted);
-  min-width: 18px;
-  padding-top: 2px;
-  flex-shrink: 0;
   text-align: right;
+  min-width: 16px;
+  flex-shrink: 0;
   user-select: none;
 }
-.log-level {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  padding: 2px 7px;
-  border-radius: 3px;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-.log-log   .log-level { background: rgba(79,201,245,0.1);  color: var(--accent2); }
-.log-warn  .log-level { background: rgba(245,166,35,0.15); color: var(--warn); }
-.log-error .log-level { background: rgba(255,95,95,0.15);  color: var(--danger); }
 
+/* Level tag — only rendered when mixed levels present */
+.log-level-tag {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 2px;
+  line-height: 16px;
+  height: 16px;
+  width: 36px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.log-level-tag-log   { background: rgba(79,201,245,0.1);  color: var(--accent2); }
+.log-level-tag-warn  { background: rgba(245,166,35,0.15); color: var(--warn); }
+.log-level-tag-error { background: rgba(255,95,95,0.15);  color: var(--danger); }
+
+/* Header text (title or inline body for single-arg rows) */
+.log-header-text {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.log-row.log-warn  .log-header-text { color: var(--warn); }
+.log-row.log-error .log-header-text { color: var(--danger); }
+/* Title (multi-arg) stays neutral, never inherits level color */
+.log-has-title-row .log-header-text {
+  color: var(--text);
+}
+
+/* Copy button */
+.log-copy-btn {
+  opacity: 0.7;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+/* Body text — matches code-block style, always neutral color */
 .log-text {
   font-family: var(--mono);
   font-size: 13px;
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-all;
-  flex: 1;
+  overflow-x: auto;
+  margin: 0;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  line-height: 1.7;
 }
-.log-row.log-warn  .log-text { color: var(--warn); }
-.log-row.log-error .log-text { color: var(--danger); }
+.log-row.log-warn  .log-text { background: transparent; }
+.log-row.log-error .log-text { background: transparent; }
 
 /* ── LOADING / EMPTY STATES ── */
 .loading-results {

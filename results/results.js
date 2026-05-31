@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const main = document.getElementById('results-main');
   main.innerHTML = `<div class="loading-results">Loading results<span class="loading-dots"></span></div>`;
 
-  // Get result ID from URL param, fall back to polling lastResult for compat
   const params = new URLSearchParams(window.location.search);
   const resultId = params.get('id');
 
@@ -57,7 +56,7 @@ async function waitForResult(timeoutMs) {
 
 async function renderHistorySidebar(activeId) {
   const history = await loadHistory();
-  if (history.length <= 1) return; // no sidebar needed for a single result
+  if (history.length <= 1) return;
 
   const sidebar = document.getElementById('history-sidebar');
   if (!sidebar) return;
@@ -95,7 +94,6 @@ async function renderHistorySidebar(activeId) {
     sidebar.appendChild(item);
   });
 
-  // Show the sidebar layout
   document.body.classList.add('has-sidebar');
 }
 
@@ -117,8 +115,6 @@ function render(main, result) {
   const statusClass = hasError ? 'error' : 'success';
   const statusIcon  = hasError ? '✕' : '✓';
   const ranAt       = new Date(result.ranAt);
-
-  // logsHtml is built as DOM nodes after innerHTML is set (see below)
 
   const logCountHtml = result.logs && result.logs.length > 0
     ? `<span class="log-count">${result.logs.length} line${result.logs.length > 1 ? 's' : ''}</span>`
@@ -175,7 +171,7 @@ function render(main, result) {
     </section>
   `;
 
-  // ── Build log rows as DOM nodes (enables per-line collapse + copy) ──────────
+  // ── Build log rows as DOM nodes ──────────────────────────────────────────────
   const logsBlock = document.getElementById('logs-block');
   if (!result.logs || result.logs.length === 0) {
     const empty = document.createElement('div');
@@ -183,54 +179,86 @@ function render(main, result) {
     empty.textContent = 'No console output — snippet ran silently.';
     logsBlock.appendChild(empty);
   } else {
-    result.logs.forEach((entry, i) => {
-      const row = document.createElement('div');
-      row.className = `log-row log-${entry.level}`;
+    // Show inline level tag only when multiple log levels are present
+    const levels = new Set((result.logs || []).map(l => l.level));
+    const showLevelTag = levels.size > 1;
 
-      // index
+    result.logs.forEach((entry, i) => {
+      // Resolve title / body — supports both old {text} and new {title, body} shapes
+      const hasTitle = entry.title != null;
+      const bodyText = entry.body !== undefined ? entry.body : (entry.text || '');
+      const isOverflowing = !hasTitle && (bodyText.includes('\n') || bodyText.length > 200);
+      const isCollapsible = hasTitle || isOverflowing;
+
+      const row = document.createElement('div');
+      row.className = `log-row log-${entry.level}` + (isCollapsible ? ' log-collapsible collapsed' : '') + (hasTitle ? ' log-has-title-row' : '');
+
+      // ── Header line: chevron + index + level-tag + title-or-text + copy ──
+      const header = document.createElement('div');
+      header.className = 'log-row-header';
+
+      // chevron placeholder always present to keep alignment
+      const chevron = document.createElement('span');
+      chevron.className = 'log-chevron' + (isCollapsible ? '' : ' log-chevron-hidden');
+      header.appendChild(chevron);
+
       const idx = document.createElement('span');
       idx.className = 'log-index';
       idx.textContent = i + 1;
+      header.appendChild(idx);
 
-      // level badge
-      const lvl = document.createElement('span');
-      lvl.className = 'log-level';
-      lvl.textContent = entry.level;
+      if (showLevelTag) {
+        const tag = document.createElement('span');
+        tag.className = `log-level-tag log-level-tag-${entry.level}`;
+        tag.textContent = entry.level;
+        header.appendChild(tag);
+      }
 
-      // chevron (inserted before pre only if collapsible, determined after render)
-      const chevron = document.createElement('span');
-      chevron.className = 'log-chevron';
+      // title (if present) or inline text (if no title)
+      const headerText = document.createElement('span');
+      headerText.className = 'log-header-text';
+      headerText.textContent = hasTitle ? entry.title : bodyText;
+      header.appendChild(headerText);
 
-      // text
-      const pre = document.createElement('pre');
-      pre.className = 'log-text';
-      pre.textContent = entry.text;
-
-      // per-line copy button
+      // copy button
       const copyBtn = document.createElement('button');
       copyBtn.className = 'btn-xs log-copy-btn';
       copyBtn.textContent = 'Copy';
       copyBtn.title = 'Copy this line';
       copyBtn.addEventListener('click', e => {
         e.stopPropagation();
-        navigator.clipboard.writeText(entry.text).then(() => {
+        const copyValue = (hasTitle && bodyText) ? bodyText : (entry.title || bodyText);
+        navigator.clipboard.writeText(copyValue).then(() => {
           copyBtn.textContent = 'Copied!';
           setTimeout(() => copyBtn.textContent = 'Copy', 1500);
         });
       });
+      header.appendChild(copyBtn);
 
-      row.appendChild(idx);
-      row.appendChild(lvl);
-      row.appendChild(pre);
-      row.appendChild(copyBtn);
+      row.appendChild(header);
+
+      // ── Body: full width below header, hidden when collapsed ──
+      if (hasTitle) {
+        const body = document.createElement('div');
+        body.className = 'log-row-body';
+        const pre = document.createElement('pre');
+        pre.className = 'log-text';
+        pre.textContent = bodyText;
+        body.appendChild(pre);
+        row.appendChild(body);
+      } else if (isOverflowing) {
+        const body = document.createElement('div');
+        body.className = 'log-row-body';
+        const pre = document.createElement('pre');
+        pre.className = 'log-text';
+        pre.textContent = bodyText;
+        body.appendChild(pre);
+        row.appendChild(body);
+      }
+
       logsBlock.appendChild(row);
 
-      // Treat a row as collapsible if it has newlines OR is long enough to wrap.
-      // ~100 chars is a reliable proxy for wrapping at typical popup widths.
-      const isOverflowing = entry.text.includes('\n') || entry.text.length > 200;
-      if (isOverflowing) {
-        row.classList.add('log-collapsible', 'collapsed');
-        row.insertBefore(chevron, pre);
+      if (isCollapsible) {
         row.addEventListener('click', e => {
           if (e.target.closest('.log-copy-btn')) return;
           row.classList.toggle('collapsed');
@@ -261,7 +289,10 @@ function render(main, result) {
   const copyOutputBtn = document.getElementById('btn-copy-output');
   if (copyOutputBtn) {
     copyOutputBtn.addEventListener('click', () => {
-      const text = (result.logs || []).map(l => l.text).join('\n');
+      const text = (result.logs || []).map(l => {
+        const body = l.body !== undefined ? l.body : (l.text || '');
+        return l.title != null ? `${l.title}: ${body}` : body;
+      }).join('\n');
       navigator.clipboard.writeText(text).then(() => {
         copyOutputBtn.textContent = 'Copied!';
         setTimeout(() => copyOutputBtn.textContent = 'Copy', 1500);
