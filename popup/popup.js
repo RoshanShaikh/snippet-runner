@@ -263,95 +263,24 @@ async function executeSnippet() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    // Inject into page — patches window.console so the <script> tag
-    // (which reads window.console at call time) sees the intercepted version.
-    const [{ result: logs }] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      world: 'MAIN',
-      func: (codeToRun, sName) => {
-        const captured = [];
-        const _log   = window.console.log.bind(console);
-        const _warn  = window.console.warn.bind(console);
-        const _error = window.console.error.bind(console);
-
-        function serializeValue(a) {
-          try {
-            if (a === null) return 'null';
-            if (a === undefined) return 'undefined';
-            return typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a);
-          } catch (_e) { return '[unserializable]'; }
-        }
-
-        function serialize(args) {
-          if (args.length > 1) {
-            // First arg is the title, remaining args are the copyable body
-            return {
-              title: serializeValue(args[0]),
-              body: args.slice(1).map(serializeValue).join(' '),
-            };
-          }
-          return { title: null, body: serializeValue(args[0]) };
-        }
-
-        // Patch window.console — script tags read from window.console
-        window.console.log   = (...a) => { captured.push({ level: 'log',   ...serialize(a) }); _log(...a);   };
-        window.console.warn  = (...a) => { captured.push({ level: 'warn',  ...serialize(a) }); _warn(...a);  };
-        window.console.error = (...a) => { captured.push({ level: 'error', ...serialize(a) }); _error(...a); };
-
-        // Log the group header using original _log so it isn't captured
-        window.console.groupCollapsed(
-          '%c[SnippetRunner]%c ' + sName + ' %c(expand for code)',
-          'color:#1a7a1a;font-weight:bold',
-          'color:inherit;font-weight:bold',
-          'color:#888;font-weight:normal;font-style:italic'
-        );
-        _log('%cCode:', 'color:#0055cc;font-weight:bold', '\n' + codeToRun);
-        window.console.groupEnd();
-
-        // Run via <script> tag — synchronous, CSP-safe, no eval
-        const script = document.createElement('script');
-        script.textContent = `(function(){try{${codeToRun}}catch(e){console.error('[SnippetRunner] Runtime error: '+e.message);}})();`;
-        (document.head || document.documentElement).appendChild(script);
-        script.remove();
-
-        // Restore
-        window.console.log   = _log;
-        window.console.warn  = _warn;
-        window.console.error = _error;
-
-        // Return as JSON string to guarantee cross-world serialization
-        return JSON.stringify(captured);
-      },
-      args: [code, snippetName]
+    // Hand off to background service worker — execution continues even if popup loses focus or closes
+    chrome.runtime.sendMessage({
+      type: 'EXECUTE_SNIPPET',
+      payload: {
+        code,
+        snippetName,
+        snippetId,
+        tabId: tab.id,
+        pageUrl: tab.url,
+        pageTitle: tab.title,
+      }
+    }, (response) => {
+      overlay.classList.add('hidden');
+      if (response?.error) {
+        showToast('Error: ' + response.error, 'error');
+      }
+      // Results tab is opened by background — nothing else needed here
     });
-
-    // Parse the JSON string back — avoids structured clone dropping data
-    let parsedLogs = [];
-    try { parsedLogs = JSON.parse(logs || '[]'); } catch (_) {}
-
-    // Build the result object with a unique ID
-    const resultId = uid();
-    const resultData = {
-      id: resultId,
-      snippetId,
-      snippetName,
-      code,
-      logs: parsedLogs,
-      ranAt: Date.now(),
-      pageUrl: tab.url,
-      pageTitle: tab.title
-    };
-
-    // Save to history (prepends, capped at 50) — also keep lastResult for compat
-    await saveToHistory(resultData);
-    await saveResult(resultData);
-
-    overlay.classList.add('hidden');
-
-    // Open results tab with the specific result ID
-    openHistoryPage(resultId)
-
-    setTimeout(() => window.close(), 300);
 
   } catch (err) {
     overlay.classList.add('hidden');
