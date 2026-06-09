@@ -1,10 +1,19 @@
 @import url('../common.css');
 
 /* ── BODY ── */
+html {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+}
+
 body {
-  width: 560px;
-  min-height: 480px;
-  max-height: 680px;
+  width: 800px;
+  height: 600px;
+  margin: 0;
+  padding: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--mono);
@@ -275,12 +284,15 @@ header {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  width: 520px;
+  width: calc(100% - 40px);
+  max-width: 760px;
+  max-height: calc(100% - 40px);
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  overflow: hidden;
 }
 
 .modal-header {
@@ -309,7 +321,14 @@ header {
 .modal-actions  { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
 
 /* ── RUN MODAL: VARS TABLE ── */
-#modal-vars { display: flex; flex-direction: column; gap: 8px; }
+#modal-vars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
 
 .modal-vars-desc {
   font-size: 11px;
@@ -347,7 +366,7 @@ header {
   color: var(--muted);
   text-align: left;
 }
-.modal-vars-table th:first-child { width: 130px; }
+.modal-vars-table th:first-child { width: 200px; }
 .modal-vars-table th:last-child { width: auto; }
 .modal-vars-table tbody tr { border-bottom: 1px solid var(--border); }
 .modal-vars-table tbody tr:last-child { border-bottom: none; }
@@ -361,7 +380,9 @@ header {
   background: rgba(79,201,245,0.08);
   padding: 2px 6px;
   border-radius: 4px;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-all;
+  display: inline-block;
 }
 /* Hint row — flush with row above, full-width subtitle */
 .modal-var-hint-row { border-bottom: 1px solid var(--border); }
