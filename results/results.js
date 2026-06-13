@@ -1,11 +1,35 @@
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-close').addEventListener('click', () => window.close());
 
-  const main = document.getElementById('results-main');
-  main.innerHTML = `<div class="loading-results">Loading results<span class="loading-dots"></span></div>`;
-
-  const params = new URLSearchParams(window.location.search);
+  const main     = document.getElementById('results-main');
+  const params   = new URLSearchParams(window.location.search);
   const resultId = params.get('id');
+
+  const pending = resultId ? await loadPendingResult(resultId) : null;
+
+  if (pending) {
+    renderLoading(main, pending);
+    await renderHistorySidebar(resultId, true);
+
+    const result = await waitForResultById(resultId, 30000);
+    await clearPendingResult(resultId);
+
+    if (!result) {
+      main.innerHTML = `
+        <div class="no-result">
+          <div class="no-result-icon">🤷</div>
+          <p>Execution timed out or failed.</p>
+          <p class="muted">Check the page console for errors.</p>
+        </div>`;
+      return;
+    }
+
+    render(main, result);
+    await renderHistorySidebar(result.id);
+    return;
+  }
+
+  main.innerHTML = `<div class="loading-results">Loading results<span class="loading-dots"></span></div>`;
 
   let result = null;
   if (resultId) {
@@ -27,6 +51,88 @@ document.addEventListener('DOMContentLoaded', async () => {
   render(main, result);
   await renderHistorySidebar(result.id);
 });
+
+// ─── Loading UI ────────────────────────────────────────────────────────────────
+
+function renderLoading(main, pending) {
+  document.title = `SnippetRunner — ${pending.snippetName}`;
+  main.innerHTML = `
+    <div class="result-hero">
+      <div class="result-status-icon running">
+        <span class="running-spinner"></span>
+      </div>
+      <div>
+        <h1 class="result-snippet-name">${escapeHtml(pending.snippetName)}</h1>
+        <div class="result-meta">
+          Running on
+          <a href="${escapeHtml(pending.pageUrl)}" target="_blank" class="page-link"
+            title="${escapeHtml(pending.pageUrl)}">${escapeHtml(pending.pageTitle || pending.pageUrl)}</a>
+          &nbsp;·&nbsp; <span id="running-timer">0.0s</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="result-section collapsible collapsed">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="chevron"></span>
+          <span>Code</span>
+          <span class="collapse-hint">click to expand</span>
+        </div>
+        <div class="section-header-right">
+          <button id="btn-copy-code" class="btn-ghost btn-xs">Copy</button>
+        </div>
+      </div>
+      <div class="section-body"><div class="section-body-inner">
+        <pre class="code-block">${escapeHtml(pending.code)}</pre>
+      </div></div>
+    </section>
+
+    <section class="result-section collapsible">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="chevron"></span>
+          <span>Output</span>
+          <span class="collapse-hint">click to collapse</span>
+        </div>
+        <div class="section-header-right"></div>
+      </div>
+      <div class="section-body"><div class="section-body-inner">
+        <div class="log-empty" style="display:flex;align-items:center;gap:10px;">
+          <span class="running-spinner running-spinner-sm"></span>
+          Executing…
+        </div>
+      </div></div>
+    </section>
+  `;
+
+  // Live timer
+  const start = pending.ranAt;
+  const timerEl = document.getElementById('running-timer');
+  const interval = setInterval(() => {
+    if (!timerEl.isConnected) { clearInterval(interval); return; }
+    timerEl.textContent = ((Date.now() - start) / 1000).toFixed(1) + 's';
+  }, 100);
+
+  // Section collapse listeners
+  main.querySelectorAll('.section-header').forEach(header => {
+    header.addEventListener('click', e => {
+      if (e.target.closest('button')) return;
+      const section = header.closest('.collapsible');
+      section.classList.toggle('collapsed');
+      const hint = header.querySelector('.collapse-hint');
+      if (hint) hint.textContent = section.classList.contains('collapsed') ? 'click to expand' : 'click to collapse';
+    });
+  });
+
+  document.getElementById('btn-copy-code').addEventListener('click', () => {
+    navigator.clipboard.writeText(pending.code).then(() => {
+      const btn = document.getElementById('btn-copy-code');
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  });
+}
 
 // ─── Wait helpers ──────────────────────────────────────────────────────────────
 
@@ -54,9 +160,13 @@ async function waitForResult(timeoutMs) {
 
 // ─── History sidebar ───────────────────────────────────────────────────────────
 
-async function renderHistorySidebar(activeId) {
+async function renderHistorySidebar(activeId, isPending = false) {
   const history = await loadHistory();
-  if (history.length <= 1) return;
+
+  // During pending, we may not be in history yet — only show sidebar if there's other history
+  const others = history.filter(r => r.id !== activeId);
+  if (!isPending && history.length <= 1) return;
+  if (isPending && others.length === 0) return;
 
   const sidebar = document.getElementById('history-sidebar');
   if (!sidebar) return;
@@ -83,12 +193,14 @@ async function renderHistorySidebar(activeId) {
     name.className = 'history-name';
     name.textContent = entry.snippetName;
 
-    const time = document.createElement('span');
-    time.className = 'history-time';
-    time.textContent = formatRelativeTime(entry.ranAt);
+    const meta = document.createElement('span');
+    meta.className = 'history-time';
+    const parts = [formatRelativeTime(entry.ranAt)];
+    if (entry.duration != null) parts.push(formatDuration(entry.duration));
+    meta.textContent = parts.join(' · ');
 
     info.appendChild(name);
-    info.appendChild(time);
+    info.appendChild(meta);
     item.appendChild(dot);
     item.appendChild(info);
     sidebar.appendChild(item);
@@ -108,6 +220,10 @@ function formatRelativeTime(ts) {
   return Math.floor(h / 24) + 'd ago';
 }
 
+function formatDuration(ms) {
+  return (ms / 1000).toFixed(2) + 's';
+}
+
 // ─── Render result ─────────────────────────────────────────────────────────────
 
 function render(main, result) {
@@ -115,6 +231,10 @@ function render(main, result) {
   const statusClass = hasError ? 'error' : 'success';
   const statusIcon  = hasError ? '✕' : '✓';
   const ranAt       = new Date(result.ranAt);
+
+  const durationHtml = result.duration != null
+    ? `&nbsp;·&nbsp; ${formatDuration(result.duration)}`
+    : '';
 
   const logCountHtml = result.logs && result.logs.length > 0
     ? `<span class="log-count">${result.logs.length} line${result.logs.length > 1 ? 's' : ''}</span>`
@@ -132,7 +252,8 @@ function render(main, result) {
           <a href="${escapeHtml(result.pageUrl)}" target="_blank" class="page-link"
             title="${escapeHtml(result.pageUrl)}">${escapeHtml(result.pageTitle || result.pageUrl)}</a>
           &nbsp;·&nbsp; ${ranAt.toLocaleTimeString()}
-          &nbsp;·&nbsp; ${new Date(result.ranAt).toLocaleDateString()}
+          &nbsp;·&nbsp; ${ranAt.toLocaleDateString()}
+          ${durationHtml}
         </div>
       </div>
     </div>
@@ -171,7 +292,6 @@ function render(main, result) {
     </section>
   `;
 
-  // ── Build log rows as DOM nodes ──────────────────────────────────────────────
   const logsBlock = document.getElementById('logs-block');
   if (!result.logs || result.logs.length === 0) {
     const empty = document.createElement('div');
@@ -179,12 +299,10 @@ function render(main, result) {
     empty.textContent = 'No console output — snippet ran silently.';
     logsBlock.appendChild(empty);
   } else {
-    // Show inline level tag only when multiple log levels are present
     const levels = new Set((result.logs || []).map(l => l.level));
     const showLevelTag = levels.size > 1;
 
     result.logs.forEach((entry, i) => {
-      // Resolve title / body — supports both old {text} and new {title, body} shapes
       const hasTitle = entry.title != null;
       const bodyText = entry.body !== undefined ? entry.body : (entry.text || '');
       const isOverflowing = !hasTitle && (bodyText.includes('\n') || bodyText.length > 200);
@@ -193,11 +311,9 @@ function render(main, result) {
       const row = document.createElement('div');
       row.className = `log-row log-${entry.level}` + (isCollapsible ? ' log-collapsible collapsed' : '') + (hasTitle ? ' log-has-title-row' : '');
 
-      // ── Header line: chevron + index + level-tag + title-or-text + copy ──
       const header = document.createElement('div');
       header.className = 'log-row-header';
 
-      // chevron placeholder always present to keep alignment
       const chevron = document.createElement('span');
       chevron.className = 'log-chevron' + (isCollapsible ? '' : ' log-chevron-hidden');
       header.appendChild(chevron);
@@ -214,13 +330,11 @@ function render(main, result) {
         header.appendChild(tag);
       }
 
-      // title (if present) or inline text (if no title)
       const headerText = document.createElement('span');
       headerText.className = 'log-header-text';
       headerText.textContent = hasTitle ? entry.title : bodyText;
       header.appendChild(headerText);
 
-      // copy button
       const copyBtn = document.createElement('button');
       copyBtn.className = 'btn-xs log-copy-btn';
       copyBtn.textContent = 'Copy';
@@ -234,19 +348,9 @@ function render(main, result) {
         });
       });
       header.appendChild(copyBtn);
-
       row.appendChild(header);
 
-      // ── Body: full width below header, hidden when collapsed ──
-      if (hasTitle) {
-        const body = document.createElement('div');
-        body.className = 'log-row-body';
-        const pre = document.createElement('pre');
-        pre.className = 'log-text';
-        pre.textContent = bodyText;
-        body.appendChild(pre);
-        row.appendChild(body);
-      } else if (isOverflowing) {
+      if (hasTitle || isOverflowing) {
         const body = document.createElement('div');
         body.className = 'log-row-body';
         const pre = document.createElement('pre');
@@ -267,7 +371,6 @@ function render(main, result) {
     });
   }
 
-  // ── Section collapse/expand ─────────────────────────────────────────────────
   main.querySelectorAll('.section-header').forEach(header => {
     header.addEventListener('click', e => {
       if (e.target.closest('button')) return;

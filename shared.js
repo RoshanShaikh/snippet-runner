@@ -24,8 +24,9 @@ function loadHistory() {
 
 async function saveToHistory(result) {
   const history = await loadHistory();
-  // Prepend newest first, cap at HISTORY_MAX
-  const updated = [result, ...history].slice(0, HISTORY_MAX);
+  // Replace existing entry with same id (pending → real), or prepend
+  const filtered = history.filter(r => r.id !== result.id);
+  const updated  = [result, ...filtered].slice(0, HISTORY_MAX);
   return new Promise(resolve => {
     chrome.storage.local.set({ executionHistory: updated }, resolve);
   });
@@ -38,7 +39,31 @@ function loadResultById(id) {
   });
 }
 
-// Keep backward-compat shims so old results.js polling still works during transition
+// ─── Pending placeholder ───────────────────────────────────────────────────────
+// Written before execution starts so the results page can open immediately.
+// The background overwrites it with the real result when done.
+
+function savePendingResult(meta) {
+  // Store as a lightweight pending entry — NOT in history yet
+  return new Promise(resolve => {
+    chrome.storage.local.set({ [`pending_${meta.id}`]: meta }, resolve);
+  });
+}
+
+function loadPendingResult(id) {
+  return new Promise(resolve => {
+    chrome.storage.local.get(`pending_${id}`, data => resolve(data[`pending_${id}`] || null));
+  });
+}
+
+function clearPendingResult(id) {
+  return new Promise(resolve => {
+    chrome.storage.local.remove(`pending_${id}`, resolve);
+  });
+}
+
+// ─── Last result shim ──────────────────────────────────────────────────────────
+
 function saveResult(result) {
   return new Promise(resolve => {
     chrome.storage.local.set({ lastResult: result }, resolve);

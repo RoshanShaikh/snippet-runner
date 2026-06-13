@@ -425,3 +425,28 @@ body.has-sidebar .results-main { flex: 1; min-width: 0; }
   font-size: 10px;
   color: var(--muted);
 }
+/* ── Running / loading state ── */
+.result-status-icon.running {
+  background: rgba(127, 255, 111, 0.08);
+}
+
+.running-spinner {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(127, 255, 111, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: sr-spin 0.75s linear infinite;
+}
+
+.running-spinner-sm {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+  flex-shrink: 0;
+}
+
+@keyframes sr-spin {
+  to { transform: rotate(360deg); }
+}
