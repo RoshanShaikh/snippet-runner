@@ -6,7 +6,7 @@
   <title>SnippetRunner — Results</title>
   <link rel="stylesheet" href="results.css" />
 </head>
-<body>
+<body class="has-sidebar">
 
   <div class="page-wrap">
     <header class="page-header">
@@ -22,9 +22,21 @@
 
     <div class="results-layout">
       <!-- JS builds all content here -->
-      <main id="results-main" class="results-main"></main>
+      <main id="results-main" class="results-main">
+        <div class="loading-results">
+          Loading results
+          <br>
+          <span class="loading-dots"></span>
+        </div>
+      </main>
       <!-- History sidebar — shown when there are multiple results -->
-      <aside id="history-sidebar" class="history-sidebar"></aside>
+      <aside id="history-sidebar" class="history-sidebar">
+        <div class="history-title">
+          History
+          <br>
+          <span class="loading-dots"></span>
+          </div>
+      </aside>
     </div>
   </div>
 

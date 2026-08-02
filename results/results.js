@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <p class="muted">Waited for: ${waitedFor} seconds.</p>
           <p class="muted">Check the page console for errors.</p>
         </div>`;
+      await renderHistorySidebar(result?.id);
       return;
     }
 
@@ -36,8 +37,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await renderHistorySidebar(result.id);
     return;
   }
-
-  main.innerHTML = `<div class="loading-results">Loading results<span class="loading-dots"></span></div>`;
 
   let result = null;
   if (resultId) {
@@ -53,11 +52,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         <p>No execution result found.</p>
         <p class="muted">Run a snippet from the extension popup.</p>
       </div>`;
-    return;
-  }
-
+      await renderHistorySidebar(result?.id);
+      return;
+    }
+    
+  await renderHistorySidebar(result?.id);
   render(main, result);
-  await renderHistorySidebar(result.id);
 });
 
 // ─── Loading UI ────────────────────────────────────────────────────────────────
@@ -184,6 +184,13 @@ async function renderHistorySidebar(activeId, isPending = false) {
   title.className = 'history-title';
   title.textContent = 'History';
   sidebar.appendChild(title);
+
+  if(history.length == 0){
+    const item = document.createElement('p');
+    item.className = 'history-title';
+    item.textContent = 'No history found.';
+    sidebar.appendChild(item);
+  }
 
   history.forEach(entry => {
     const item = document.createElement('a');
