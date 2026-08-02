@@ -22,6 +22,12 @@ function loadHistory() {
   });
 }
 
+function clearHistory() {
+  return new Promise(resolve => {
+    chrome.storage.local.set({ executionHistory: null, lastResult: null }, resolve);
+  });
+}
+
 async function saveToHistory(result) {
   const history = await loadHistory();
   // Replace existing entry with same id (pending → real), or prepend

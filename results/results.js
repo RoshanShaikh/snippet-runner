@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById("btn-clear-history").addEventListener("click", () => {
+    clearHistory();
+    window.close();
+  });
   document.getElementById('btn-close').addEventListener('click', () => window.close());
 
   const main     = document.getElementById('results-main');
@@ -169,8 +173,8 @@ async function renderHistorySidebar(activeId, isPending = false) {
 
   // During pending, we may not be in history yet — only show sidebar if there's other history
   const others = history.filter(r => r.id !== activeId);
-  if (!isPending && history.length <= 1) return;
-  if (isPending && others.length === 0) return;
+  // if (!isPending && history.length <= 1) return;
+  // if (isPending && others.length === 0) return;
 
   const sidebar = document.getElementById('history-sidebar');
   if (!sidebar) return;

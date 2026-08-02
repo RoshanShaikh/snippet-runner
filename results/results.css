@@ -366,9 +366,9 @@ html, body {
   flex-direction: column;
   width: 220px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border);
-  margin-right: 32px;
-  padding-right: 24px;
+  border-left: 1px solid var(--border);
+  margin-left: 32px;
+  padding-left: 24px;
   position: sticky;
   top: 0;
   max-height: 100vh;
