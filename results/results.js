@@ -6,19 +6,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   const resultId = params.get('id');
 
   const pending = resultId ? await loadPendingResult(resultId) : null;
+  const waitingStarted = new Date();
 
   if (pending) {
     renderLoading(main, pending);
     await renderHistorySidebar(resultId, true);
 
-    const result = await waitForResultById(resultId, 30000);
+    const result = await waitForResultById(resultId, 300000);
     await clearPendingResult(resultId);
 
     if (!result) {
+      const waitingEnded = new Date();
+      let waitedFor = (waitingEnded - waitingStarted) / 1000;
       main.innerHTML = `
         <div class="no-result">
           <div class="no-result-icon">🤷</div>
           <p>Execution timed out or failed.</p>
+          <p class="muted">Waited for: ${waitedFor} seconds.</p>
           <p class="muted">Check the page console for errors.</p>
         </div>`;
       return;
