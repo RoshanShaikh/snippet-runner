@@ -450,3 +450,152 @@ body.has-sidebar .results-main { flex: 1; min-width: 0; }
 @keyframes sr-spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── RUNTIME ERROR DETAILS ── */
+
+.log-row.log-runtime-error {
+  background: rgba(255, 95, 95, 0.075);
+}
+
+.log-row.log-runtime-error .log-header-text {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.log-location-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 18px;
+  height: 18px;
+  padding: 0 7px;
+  border: 1px solid rgba(255, 95, 95, 0.28);
+  border-radius: 3px;
+  color: var(--danger);
+  background: rgba(255, 95, 95, 0.08);
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.runtime-error-message {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--danger);
+  line-height: 1.6;
+  padding: 2px 0 12px;
+}
+
+.runtime-error-location-block {
+  margin-bottom: 10px;
+}
+
+.runtime-error-location {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.runtime-error-location-file {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.runtime-error-location-separator {
+  opacity: 0.5;
+}
+
+.runtime-error-source {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: auto;
+  background: var(--bg);
+  margin-bottom: 10px;
+}
+
+.runtime-error-source-row {
+  display: grid;
+  grid-template-columns: 38px 18px minmax(0, 1fr);
+  align-items: stretch;
+  min-height: 24px;
+  line-height: 24px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.runtime-error-source-row.current {
+  background: rgba(255, 95, 95, 0.09);
+}
+
+.runtime-error-source-number {
+  color: var(--muted);
+  text-align: right;
+  padding-right: 8px;
+  user-select: none;
+  border-right: 1px solid var(--border);
+}
+
+.runtime-error-source-marker {
+  color: var(--danger);
+  font-weight: 800;
+  text-align: center;
+  user-select: none;
+}
+
+.runtime-error-source-text {
+  min-width: 0;
+  white-space: pre;
+  overflow-x: visible;
+  padding-left: 8px;
+  color: var(--text);
+}
+
+.runtime-error-caret-row {
+  display: grid;
+  grid-template-columns: 38px 18px minmax(0, 1fr);
+  min-height: 18px;
+  line-height: 18px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.runtime-error-caret {
+  color: var(--danger);
+  white-space: pre;
+  font-weight: 700;
+  padding-left: 8px;
+}
+
+.runtime-error-stack-toggle {
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.runtime-error-stack-toggle:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.runtime-error-stack {
+  margin: 8px 0 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.log-runtime-error:not(.collapsed) .log-chevron::after {
+  border-color: var(--danger);
+}
