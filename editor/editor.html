@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SnippetRunner — Editor</title>
+  <link rel="stylesheet" href="editor.css" />
+</head>
+<body>
+
+  <div class="page-wrap">
+    <header class="page-header">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">SnippetRunner</span>
+      </div>
+      <div class="header-actions">
+        <button id="btn-cancel" class="btn-ghost">Cancel</button>
+        <button id="btn-save" class="btn-primary">Save Snippet</button>
+      </div>
+    </header>
+
+    <main class="editor-main">
+      <div class="editor-title-row">
+        <h1 id="page-title">New Snippet</h1>
+      </div>
+
+      <div class="form-grid">
+
+        <div class="form-section">
+          <label for="field-name">Name <span class="required">*</span></label>
+          <input id="field-name" type="text" placeholder="e.g. Set Auth Token" maxlength="60" autocomplete="off"/>
+        </div>
+
+        <div class="form-section">
+          <label for="field-desc">Description <span class="optional">(optional)</span></label>
+          <input id="field-desc" type="text" placeholder="What does this snippet do?" maxlength="120" autocomplete="off"/>
+        </div>
+
+        <div class="form-section full-width">
+          <label for="field-code">Code <span class="required">*</span></label>
+          <textarea id="field-code" class="code-textarea" spellcheck="false"
+            autocorrect="off" autocapitalize="off"
+            placeholder="// Use {{variableName}} placeholders&#10;// e.g. localStorage.setItem('token', '{{token}}');"></textarea>
+        </div>
+
+        <div class="form-section full-width">
+          <label>Detected Variables</label>
+          <div id="variables-list" class="variables-list">
+            <p class="vars-empty-hint">
+              Use <code>{{variableName}}</code> placeholders in your code — variables appear here automatically.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <!-- MULTILINE EDITOR OVERLAY -->
+  <div id="multiline-overlay" class="multiline-overlay hidden">
+    <div class="multiline-box multiline-box--page">
+      <div class="multiline-header">
+        <span id="multiline-label" class="multiline-label"></span>
+        <span id="multiline-hint" class="multiline-hint"></span>
+      </div>
+      <textarea id="multiline-textarea" class="multiline-textarea" spellcheck="false" autocomplete="off"></textarea>
+      <div class="multiline-actions">
+        <button id="multiline-cancel" class="btn-ghost">Cancel</button>
+        <button id="multiline-confirm" class="btn-primary">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared.js"></script>
+  <script src="editor.js"></script>
+</body>
+</html>
